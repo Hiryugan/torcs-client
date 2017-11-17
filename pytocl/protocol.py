@@ -66,6 +66,8 @@ class Client:
         while self.state is State.RUNNING:
             self._process_server_msg()
 
+            # TODO: save files
+
         _logger.info('Client stopped.')
         self.state = State.STOPPED
 
@@ -85,6 +87,8 @@ class Client:
         Sends driver's initialization data to server and waits for acceptance
         response.
         """
+
+        #TODO LOAD NETWORK
 
         angles = self.driver.range_finder_angles
         assert len(angles) == 19, \
@@ -117,6 +121,7 @@ class Client:
 
     def _process_server_msg(self):
         try:
+
             buffer, _ = self.socket.recvfrom(TO_SOCKET_MSEC)
             _logger.debug('Received buffer {!r}.'.format(buffer))
 
@@ -137,6 +142,8 @@ class Client:
                 _logger.debug(carstate)
 
                 command = self.driver.drive(carstate)
+
+                # _logger.info(carstate)
 
                 _logger.debug(command)
                 buffer = self.serializer.encode(command.actuator_dict)

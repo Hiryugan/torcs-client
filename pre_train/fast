@@ -1,0 +1,39 @@
+Timer unit: 1e-06 s
+
+Total time: 13.4294 s
+File: mlp_torch.py
+Function: go at line 115
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   115                                           @profile
+   116                                           def go():
+   117        11           80      7.3      0.0      for ITER in range(1, epochs+1):
+   118        10            7      0.7      0.0          train_loss = 0.0
+   119        10           17      1.7      0.0          start = time.time()
+   120        10            8      0.8      0.0          s = 0
+   121        20           18      0.9      0.0          for dataset in datasets:
+   122      9120         8550      0.9      0.1              for i in range(int(dataset.size(0)/ 5)):
+   123      9110       154827     17.0      1.2                  r = random.randint(0, dataset.size(0)-5)
+   124                                                           # forward pass
+   125      9110       340857     37.4      2.5                  lookup_tensor = dataset[r:r+1].view(1, -1)
+   126                                           
+   127      9110        13461      1.5      0.1                  if ITER % 25 == 0:
+   128                                                               print('here')
+   129      9110      2443054    268.2     18.2                  scores = model(lookup_tensor)
+   130      9110       181327     19.9      1.4                  target = dataset[r+4]
+   131                                           
+   132      9110      1356051    148.9     10.1                  output = loss(scores, target[:output_size])
+   133      9110       226865     24.9      1.7                  train_loss += output.data[0]
+   134                                           
+   135                                                           # backward pass
+   136      9110       674563     74.0      5.0                  model.zero_grad()
+   137      9110      5376440    590.2     40.0                  output.backward()
+   138                                           
+   139                                                           # update weights
+   140      9110      2637224    289.5     19.6                  optimizer.step()
+   141      9110        15763      1.7      0.1                  s += 1
+   142                                           
+   143        10           11      1.1      0.0          print("iter %r: train loss/sent=%.4f, time=%.2fs" %
+   144        10          292     29.2      0.0                (ITER, train_loss / s, time.time() - start))
+

@@ -66,8 +66,8 @@ class Driver:
 
         # ACC_LATERAL_MAX = 6400 * 5
         # v_x = min(80, math.sqrt(ACC_LATERAL_MAX / abs(command.steering)))
-        v_x = 80
-
+        v_x = 150
+        _logger.info(command)
         self.accelerate(carstate, v_x, command)
 
         if self.data_logger:
