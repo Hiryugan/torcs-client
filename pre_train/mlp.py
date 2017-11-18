@@ -29,13 +29,13 @@ def preprocess(data):
     pass
 
 def go():
-    X, _ = get_data2(files=['forza_1'], folder='../data/')
-    u = X.mean(0)
-    std = X.std(0)
-    X = (X - u)
-    for i in range(X.shape[1]):
-        if std[i] != 0:
-            X[:, i] /= std[i]
+    X, _ = get_data2(files='forza_3', folder='../data/')
+    # u = X.mean(0)
+    # std = X.std(0)
+    # X = (X - u)
+    # for i in range(X.shape[1]):
+    #     if std[i] != 0:
+    #         X[:, i] /= std[i]
     errs = []
     losses = []
     k = 500
@@ -46,18 +46,24 @@ def go():
 
     train, target = create_data(X)
 
-    mlp = MLPRegressor(verbose=0, random_state=0, alpha=0.01, hidden_layer_sizes=2048, max_iter=1000, **{'solver': 'adam', 'learning_rate_init': 0.0001})
-
-    res = mlp.fit(train, target)
+    mlp = MLPRegressor(verbose=0, random_state=0, alpha=0.01, hidden_layer_sizes=512, max_iter=1000, **{'solver': 'adam', 'learning_rate_init': 0.0001})
+    mlp_gear = MLPClassifier(verbose=0, random_state=0, alpha=0.0001, hidden_layer_sizes=1024, max_iter=500, **{'solver': 'adam', 'learning_rate_init': 0.0001})
+    train_gear = np.copy(train)
+    train_gear = np.delete(train_gear, [0,1,3,4], axis=1)
+    target_gear = np.copy(target)
+    target_gear = np.delete(target_gear, [0,1,3,4], axis=1)
+    target_gear = target_gear.squeeze()
+    # res = mlp.fit(train, target)
+    res_gear = mlp_gear.fit(train_gear, target_gear)
     # print(res)
     print(train.shape, target.shape)
-    print( "Training set score: %f" % mlp.score(train, target))
-    print( "Training set loss: %f" % mlp.loss_)
+    print( "Training set score: %f" % mlp_gear.score(train_gear, target_gear))
+    print( "Training set loss: %f" % mlp_gear.loss_)
     # pred = mlp.predict(X[:k, 3:])
     # pred = mlp.predict(target)
     # mat = np.zeros((2,2))
 
-    Xtest, _ = get_data2(files = ['forza_test'], folder = '../data/')
+    Xtest, _ = get_data2(files = 'forza_4', folder = '../data/')
    #  a = np.array([[  1.00000000e+00 ,  0.00000000e+00 ,  1.00000000e+00 ,  0.00000000e+00,
    #  0.00000000e+00 ,  0.00000000e+00 , -3.48266000e-04 , -9.82000000e-01,
    #  0.00000000e+00 ,  5.75910000e+03 ,  0.00000000e+00 ,  9.40000000e+01,
@@ -74,23 +80,26 @@ def go():
    #  Xtest = np.vstack((Xtest, a))
    #  Xtest = np.vstack((Xtest, a))
     xorig = Xtest.copy()
-    Xtest -= u
-    for i in range(X.shape[1]):
-        if std[i] != 0:
-            Xtest[:, i] /= std[i]
+    # Xtest -= u
+    # for i in range(X.shape[1]):
+    #     if std[i] != 0:
+    #         Xtest[:, i] /= std[i]
     test, target_test = create_data(Xtest)
-
-    pred = mlp.predict(test)
-    print(mlp.score(test, target_test))
-    for i in range(X.shape[1]):
-        if std[i] != 0:
-            test[:, i] *= std[i]
-            if i < 5:
-                target_test[:,i] *= std[i]
-                pred[:,i] *= std[i]
-    test += u
-    target_test += u[:5]
-    pred += u[:5]
+    # train_gear = np.copy(train)
+    test = np.delete(test, [0, 1, 3, 4], axis=1)
+    # target_gear = np.copy(target)
+    target_test = np.delete(target_test, [0, 1, 3, 4], axis=1)
+    pred = mlp_gear.predict(test)
+    print(mlp_gear.score(test, target_test))
+    # for i in range(X.shape[1]):
+    #     if std[i] != 0:
+    #         test[ i] *= std[i]
+    #         if i < 5:
+    #             target_test[i] *= std[i]
+    #             pred[i] *= std[i]
+    # test += u
+    # target_test += u[:5]
+    # pred += u[:5]
     print(pred[:5])
     print(target_test[:5])
     print(xorig[1:, :5])
@@ -119,11 +128,11 @@ def go():
     # losses.append(err / k)
     # errs.append(err)
     print(time.time() - start)
-    plt.plot(mlp.loss_curve_[1:], label='aaa')
+    plt.plot(mlp_gear.loss_curve_[1:], label='aaa')
     plt.show()
 
-    pickle.dump(res, open('models/mod_temporal2', 'wb') )
-    pickle.dump([u, std], open('models/ustd', 'wb'))
+    # pickle.dump(res, open('models/mod_temporal2', 'wb') )
+    # pickle.dump([u, std], open('models/ustd', 'wb'))
 
 go()
 # print(losses)
