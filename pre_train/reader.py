@@ -74,7 +74,7 @@ def get_data2(files='alpine-1.csv', folder='../data/'):
             if len(a) > 2 and name != '(opponents':
                 for v in a[1:]:
                     datarow.append(v)
-            elif name != '(gear2' and name != '(opponents':
+            elif name != '(gear2' and name != '(opponents' and name != '(angle2':
                 datarow.append(float(a[1]))
         data.append(datarow)
 
