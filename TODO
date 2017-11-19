@@ -1,0 +1,14 @@
+the entry point is the file train.py in the folder pre_train.
+
+then you can read how the MLP works. it uses a window of previous states to predict the next output values (accel, brake, ecc).
+
+to use different datasets, insert the names in the call to init_datasets. 
+
+the model is stored using pickle along with mean and standard deviation of a linear transformation that is applied to the data to normalize it (y = (x - mu) / std). It is very, very useful to train better the network
+
+It is important that you read the reader.py file, because it is the loading data procedure.
+Keep in mind, the input data has the desired outputs and the carstate of a single frame. (at the moment, first 5 are output and others are carstate, gear2 is ignored. read the files in the data folder to understand also)
+
+It will be probably better to use a torch DataLoader to wrap the data, since all the tracks can be very large in memory. I am now creating the data using construct_dataset, you will have to change it for sure for the RNN case (your input is just one past state, not variable lenght as was with MLP)
+
+The details on how to actually try your netowrk on torcs are in my_driver.py, but I would pay attention to it only when you have a low error on the train and test set with the RNN (or LSTM).

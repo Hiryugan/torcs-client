@@ -1,10 +1,16 @@
 from pre_train.mlp_torch_2 import MLP
 import pickle
 
-input_size = [i for i in range(48)]
-output_size = [0, 1, 2, 3, 4]
-state_size = [i for i in range(5, 48)]
-model = MLP(input_size = len(input_size),output_size = len(output_size), state_size=len(state_size), batch_size = 256, history_size = 4, cuda = True, epochs = 800)
+# indices of the input dimensions for the past frames
+# notice, 48 uses all dimensions but the opponent sensors
+input_dimensions = [i for i in range(48)]
+# use the first 5 dimensions as outputs (accel, brake, gear, steer, clutch)
+output_dimensions = [0, 1, 2, 3, 4]
+# dimensions of the state input (all the car state but opponents)
+state_dimensions = [i for i in range(5, 48)]
+
+# batch size actually helps very much for both convergence and running time of the iterations
+model = MLP(input_size = len(input_dimensions),output_size = len(output_dimensions), state_size=len(state_dimensions), batch_size = 256, history_size = 4, cuda = True, epochs = 800)
 model.init_datasets(fnames=['forza_2', 'forza_3'], fnames_test=['forza_4'])
 #
 loss, mu, std = model.train()
