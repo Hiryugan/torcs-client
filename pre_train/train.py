@@ -15,17 +15,17 @@ dataset_names_test = ['cg_speedway_number1' , 'olethros_road_1',  'wheel2']
 dataset_names2 = [x + '_2' for x in dataset_names]
 dataset_names3 = [x + '_3' for x in dataset_names_test]
 # batch size actually helps very much for both convergence and running time of the iterations
-# model = MLP(input_dimensions = input_dimensions,output_dimensions = output_dimensions, state_dimensions=state_dimensions, batch_size = 256, history_size = 1, cuda = True, epochs = 35)
-# model.init_datasets(fnames=dataset_names2, fnames_test=dataset_names3)
-
-# loss, mu, std = model.train()
-# pickle.dump(model, open('models/mod_temporal_torch', 'wb'))
-# pickle.dump([mu, std], open('models/ustd_torch', 'wb'))
+model = MLP(input_dimensions = input_dimensions,output_dimensions = output_dimensions, state_dimensions=state_dimensions, batch_size = 256, history_size = 1, cuda = True, epochs = 35)
+model.init_datasets(fnames=dataset_names2, fnames_test=dataset_names3)
 #
-model = pickle.load(open('models/mod_temporal_torch', 'rb'))
-mu, std = pickle.load(open('models/ustd_torch', 'rb'))
+loss, mu, std = model.train()
+pickle.dump(model, open('models/mod_temporal_torch', 'wb'))
+pickle.dump([mu, std], open('models/ustd_torch', 'wb'))
+
+# model = pickle.load(open('models/mod_temporal_torch', 'rb'))
+# mu, std = pickle.load(open('models/ustd_torch', 'rb'))
 # model.init_datasets(fnames=dataset_names2, fnames_test=dataset_names3, normalize=False)
-print('we')
+# print('we')
 # model.init_datasets(fnames=dataset_names2, fnames_test=dataset_names3)
 # first = pickle.load(open('models/first_round', 'rb'))
 # a = model.back_transform(first[:, :48], mu, std)
