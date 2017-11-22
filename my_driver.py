@@ -46,12 +46,15 @@ class MyDriver:
         self.mu = t[0]
         self.std = t[1]
         # number of previous states used for the prediction
-        self.history = 4
+        self.history = 1
         self.past_sensors = []
         self.past_command = [np.zeros((48))]
         self.past_command[-1][0] = (1 - self.mu.data[0]) / self.std.data[0]
         self.past_command[-1][2] = (1 - self.mu.data[2]) / self.std.data[2]
         self.it = 0
+        self.input_dimensions = [i for i in range(5, 48)]
+        self.output_dimensions = [3]  # [0, 1, 2, 3, 4]
+        self.state_dimensions = [i for i in range(5, 48)]
     @property
     def range_finder_angles(self):
         """Iterable of 19 fixed range finder directions [deg].
@@ -149,14 +152,15 @@ class MyDriver:
         command = Command()
         # self.steer(carstate, 0.0, command)
         self.it += 1
-
+        O = len(self.output_dimensions)
         #multiply speeds by 3.6
         # wheel velocities
         features = self.carstate_matrix2(carstate).reshape(1,-1)
         # _logger.info(carstate)
         features = Variable(torch.FloatTensor(features))
         # features = Variable(torch.FloatTensor(features))
-        t_features = self.model.transform(features, self.mu[5:], self.std[5:])
+        t_features = self.model.transform(features, self.mu[torch.LongTensor(self.input_dimensions)],
+                                              self.std[torch.LongTensor(self.input_dimensions)])
         outCommand = Command()
         if len(self.past_command) >= self.history:
 
@@ -172,28 +176,31 @@ class MyDriver:
             t_prediction = self.model(feat2)
             # t_prediction = self.model((torch.from_numpy(t_features)))
 
-            prediction = self.model.back_transform(t_prediction, self.mu, self.std)
-
+            prediction = self.model.back_transform(t_prediction,
+                                                   self.mu[torch.LongTensor(self.output_dimensions)],
+                                                   self.std[torch.LongTensor(self.output_dimensions)])[0]
             prediction = prediction[0]
             #
             # prediction.data[0] = max(0, prediction.data[0])
             # prediction.data[1] = max(0, prediction.data[1])
-            # prediction.data[3] = max(0, prediction.data[3])
+            prediction.data[0] = max(0, prediction.data[0])
             # prediction.data[4] = max(0, prediction.data[4])
             # prediction.data[0] = min(1, prediction.data[0])
             # prediction.data[1] = min(1, prediction.data[1])
-            # prediction.data[3] = min(1, prediction.data[3])
+            prediction.data[0] = min(1, prediction.data[0])
             # prediction.data[4] = min(1, prediction.data[4])
             # prediction.data[2] = np.rint(prediction.data[2])
             # prediction.data[2] = max(0, prediction.data[2])
             # prediction.data[2] = min(1, prediction.data[2])
-            outCommand.accelerator = prediction.data[0]
+            outCommand.accelerator = 1#prediction.data[0]
 
-            if self.it > 5:
-                outCommand.gear = prediction.data[2]
-                outCommand.steering = prediction.data[3]
+            if self.it > 50:
+                self.accelerate(carstate, 0, outCommand)
+
+                # outCommand.gear = int(prediction.data[2])
+                outCommand.steering = prediction.data[0]
                 outCommand.brake = 0#prediction.data[1]
-                outCommand.clutch = prediction.data[4]
+                outCommand.clutch = 0#prediction.data[4]
 
             else:
                 outCommand.gear = 1
@@ -201,19 +208,26 @@ class MyDriver:
                 outCommand.brake = 0
                 outCommand.clutch = 0
 
-            prediction = self.model.transform(prediction.view(1, -1), self.mu, self.std)[0]
+            prediction = self.model.transform(prediction.view(1, -1),
+                                              self.mu[torch.LongTensor(self.output_dimensions)],
+                                              self.std[torch.LongTensor(self.output_dimensions)])[0]
 
             # _logger.info(self.it)
             _logger.info(carstate)
-
+            _logger.info(self.it)
             # t_features[0, :5] = prediction[:5]
-            t_features_numpy = np.hstack((np.zeros((1, 5)), t_features.data.numpy()))
-            t_features_numpy[0, :5] = prediction.data.numpy()[:5]
+            if self.input_dimensions != self.state_dimensions:
+                t_features_numpy = np.hstack((np.zeros((1, O)), t_features.data.numpy()))
+                t_features_numpy[0, :O] = prediction.data.numpy()[:O]
+            else:
+                t_features_numpy = t_features.data.numpy()
             self.past_command.append(t_features_numpy[0, :])
-
         else:
-            numpy_feat = np.hstack((np.zeros((1, 5)), t_features.data.numpy()))
-            numpy_feat[0, :5] = self.past_command[-1][:5]
+            if self.input_dimensions != self.state_dimensions:
+                numpy_feat = np.hstack((np.zeros((1, O)), t_features.data.numpy()))
+                numpy_feat[0, :O] = self.past_command[-1][:O]
+            else:
+                numpy_feat = t_features.data.numpy()
             self.past_command.append(numpy_feat[0, :])
 
 
@@ -228,21 +242,22 @@ class MyDriver:
     def accelerate(self, carstate, target_speed, command):
         # compensate engine deceleration, but invisible to controller to
         # prevent braking:
-        speed_error = 1.0025 * target_speed * MPS_PER_KMH - carstate.speed_x
-        acceleration = self.acceleration_ctrl.control(
-            speed_error,
-            carstate.current_lap_time
-        )
+        # speed_error = 1.0025 * target_speed * MPS_PER_KMH - carstate.speed_x
+        # acceleration = self.acceleration_ctrl.control(
+        #     speed_error,
+        #     carstate.current_lap_time
+        # )
 
-        # stabilize use of gas and brake:
-        acceleration = math.pow(acceleration, 3)
-
+        # # stabilize use of gas and brake:
+        # acceleration = math.pow(acceleration, 3)
+        acceleration = command.accelerator
         if acceleration > 0:
-            if abs(carstate.distance_from_center) >= 1:
-                # off track, reduced grip:
-                acceleration = min(0.4, acceleration)
 
-            command.accelerator = min(acceleration, 1)
+            # if abs(carstate.distance_from_center) >= 1:
+            #     off track, reduced grip:
+                # acceleration = min(0.4, acceleration)
+
+            # command.accelerator = min(acceleration, 1)
 
             if carstate.rpm > 8000:
                 command.gear = carstate.gear + 1

@@ -76,6 +76,8 @@ def get_data2(files='alpine-1.csv', folder='../data/'):
                     datarow.append(v)
             elif name != '(gear2' and name != '(opponents' and name != '(angle2':
                 datarow.append(float(a[1]))
+            elif name == '(angle2':
+                raise 'angle2'
         data.append(datarow)
 
     # npdata = np.zeros((len(data), len(data[0])))

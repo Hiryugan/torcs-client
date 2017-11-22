@@ -13,31 +13,36 @@ import copy
 torch.manual_seed(42)
 
 class MLP(nn.Module):
-    def __init__(self, input_size, output_size, state_size, batch_size, history_size, cuda, epochs):
+    def __init__(self, input_dimensions, output_dimensions, state_dimensions, batch_size, history_size, cuda, epochs):
         super(MLP, self).__init__()
-        self.input_size = input_size
-        self.output_size = output_size
-        self.state_size = state_size
+        self.output_size = len(output_dimensions)
+        self.output_dimensions = output_dimensions
+        self.state_size = len(state_dimensions)
+        self.state_dimensions = state_dimensions
+        self.input_size = len(input_dimensions)
+        self.input_dimensions = input_dimensions
+
         self.batch_size = batch_size
         self.history_size = history_size
         self.use_cuda = cuda
         self.epochs = epochs
 
-        self.fc1 = nn.Linear(input_size*(history_size-1) + state_size, 512)
+        self.fc1 = nn.Linear(self.input_size*(history_size-1) + self.state_size, 512)
         self.drop = nn.Dropout(0.1)
         self.drop2 = nn.Dropout(0.1)
-        self.fc2 = nn.Linear(512, 64)
-        self.fc3 = nn.Linear(64, output_size)
+        # self.bn1 = nn.BatchNorm1d(512)
+        self.fc2 = nn.Linear(512, 512)
+        self.fc3 = nn.Linear(512, self.output_size)
 
         self.datasets = []
         self.datasets_orig = []
         self.datasets_test = []
         self.datasets_test_orig = []
-        self.optimizer = optim.Adam(self.parameters(), lr=0.00001)
+        self.optimizer = optim.Adam(self.parameters(), lr=0.0001)
 
         self.loss = nn.MSELoss()
-        self.mu = Variable(torch.zeros(input_size))
-        self.std = Variable(torch.zeros(input_size))
+        self.mu = Variable(torch.zeros(self.input_size))
+        self.std = Variable(torch.zeros(self.input_size))
     def forward(self, x):
         x = F.relu(self.fc1(x))
         # x = self.drop(x)
@@ -60,7 +65,7 @@ class MLP(nn.Module):
         test_loss = 0.0
         start = time.time()
         avg_prediction = Variable(torch.zeros(self.output_size))
-        for dataset, labels in self.datasets:
+        for dataset, labels in datasets:
             # for every
             # dataset, labels = datasett
             for i in range(int(dataset.size(0) / self.batch_size)):
@@ -91,13 +96,13 @@ class MLP(nn.Module):
 
 
 
-    def init_datasets(self, fnames, fnames_test):
+    def init_datasets(self, fnames, fnames_test, normalize=True):
         # fnames = ['forza_1']
         # fnames_test = ['forza_test']
         self.datasets = []
         self.datasets_test = []
-        means = torch.zeros(len(fnames), self.input_size)
-        vars = torch.zeros(len(fnames), self.input_size)
+        # means = torch.zeros(len(fnames), self.input_size)
+        # vars = torch.zeros(len(fnames), self.input_size)
 
 
         for name in fnames:
@@ -112,19 +117,22 @@ class MLP(nn.Module):
 
         self.datasets_orig = copy.deepcopy(self.datasets)
         self.datasets_orig_test = copy.deepcopy(self.datasets_test)
-
-        self.mu, self.std = self.normalize(self.datasets, self.datasets_test)
+        if normalize:
+            self.mu, self.std, N = self.get_normalization(self.datasets)
+        self.normalize(self.datasets, self.datasets_test, self.mu, self.std)
 
         l = []
         l2 = []
         for data in self.datasets:
-            data2, label2 = construct_dataset(data.data.numpy(), [i for i in range(48)], [i for i in range(5, 48)], [0,1,2,3,4], 4)
+            # data2, label2 = construct_dataset(data.data.numpy(), [i for i in range(48)], [i for i in range(5, 48)], [0,1,2,3,4], 4)
+            data2, label2 = construct_dataset(data.data.numpy(), self.input_dimensions, self.state_dimensions, self.output_dimensions, self.history_size)
             data2 = Variable(torch.FloatTensor(data2))
             label2 = Variable(torch.FloatTensor(label2))
             l.append((data2, label2))
 
         for data in self.datasets_test:
-            data2, label2 = construct_dataset(data.data.numpy(), [i for i in range(48)], [i for i in range(5, 48)], [0, 1,2,3,4], 4, all=True)
+            # data2, label2 = construct_dataset(data.data.numpy(), [i for i in range(48)], [i for i in range(5, 48)], [0, 1,2,3,4], 4, all=True)
+            data2, label2 = construct_dataset(data.data.numpy(), self.input_dimensions, self.state_dimensions, self.output_dimensions, self.history_size, all=True)
             data2 = Variable(torch.FloatTensor(data2))
             label2 = Variable(torch.FloatTensor(label2))
             l2.append((data2, label2))
@@ -134,9 +142,9 @@ class MLP(nn.Module):
 
     def get_normalization(self, datasets):
         N = sum([len(x) for x in datasets])
-        mu = Variable(torch.zeros(self.input_size))
-        std = Variable(torch.zeros(self.input_size))
-        var = Variable(torch.zeros(self.input_size))
+        mu = Variable(torch.zeros(datasets[0].data.size(1)))
+        std = Variable(torch.zeros(datasets[0].data.size(1)))
+        var = Variable(torch.zeros(datasets[0].data.size(1)))
         # if self.use_cuda:
         #     mu, std, var = mu.cuda(), std.cuda(), var.cuda()
         for data in datasets:
@@ -193,8 +201,8 @@ class MLP(nn.Module):
         X += mu[:X.size(1)]
         return X
 
-    def normalize(self, datasets, datasets_test):
-        mu, std, N = self.get_normalization(datasets)
+    def normalize(self, datasets, datasets_test, mu, std):
+
         for i in range(len(datasets)):
             datasets[i] = self.transform(datasets[i], mu, std)
 
@@ -243,7 +251,7 @@ class MLP(nn.Module):
                     # target2 = self.back_transform2(target, self.mu, self.std)
                     output = self.loss(scores, target)
                     train_loss += output.data[0]
-                    if ITER > 555 and ITER % 50 == 0:
+                    if ITER % 50 == 0:
                         print('we')
                     # backward pass
 
@@ -256,13 +264,18 @@ class MLP(nn.Module):
 
             print("iter %r: train loss/sent=%.4f, time=%.2fs" %
                   (ITER, train_loss / s, time.time() - start))
-            if ITER % 1 == 0:
+            if ITER % 5 == 0:
                 self.evaluate(self.datasets_test)
             # evaluate
         # self.save_model(self, open('models/mod_temporal_torch', 'wb'))
         # pickle.dump(self, open('models/mod_temporal_torch', 'wb') )
         # self.save_model([self.mu, self.std], open('models/ustd_torch', 'wb'))
         self.use_cuda = False
+        # self.datasets = None
+        # self.datasets_test = None
+        # self.datasets_orig = None
+        # self.datasets_orig_test = None
+
         self.cpu()
         self.mu = self.mu.cpu()
         self.std = self.std.cpu()
