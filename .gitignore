@@ -3,3 +3,5 @@ __pycache__/
 drivelogs/
 output/
 .idea/
+pre_train/models/
+data/**
