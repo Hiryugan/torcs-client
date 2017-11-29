@@ -21,7 +21,7 @@ class myLSTM(Standard_nn):
         self.history_size = history_size
         # nn.LSTM.__init__(self, input_size=self.input_size, hidden_size=256, num_layers=1)
         Standard_nn.__init__(self, input_dimensions, output_dimensions, state_dimensions, batch_size, cuda, epochs)
-        self.hidden_size = 256
+        self.hidden_size = 512
         self.init_lstm()
         self.lr_decay = 0.95
 
