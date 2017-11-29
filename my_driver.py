@@ -3,7 +3,7 @@ import logging
 import math
 import torch
 import torch.nn as nn
-
+import time
 from torch.autograd import Variable
 from pytocl.analysis import DataLogWriter
 from pytocl.car import State, Command, MPS_PER_KMH
@@ -13,7 +13,7 @@ import pickle
 # from pre_train.pickler import load_model, save_model
 import numpy as np
 
-from pre_train.mlp_torch import MLP#, transform, back_transform, load_model
+from pre_train.mlp_torch_2 import MLP#, transform, back_transform, load_model
 # from .pre_train.mlp_torch import MLP, transform, back_transform
 _logger = logging.getLogger(__name__)
 
@@ -28,6 +28,8 @@ class MyDriver:
     """
 
     def __init__(self, logdata=True):
+
+        start = time.time()
         self.steering_ctrl = CompositeController(
             ProportionalController(0.4),
             IntegrationController(0.2, integral_limit=1.5),
@@ -37,7 +39,16 @@ class MyDriver:
             ProportionalController(3.7),
         )
         self.data_logger = DataLogWriter() if logdata else None
-        self.model = pickle.load(open('pre_train/models/mod_temporal_torch','rb'))
+
+        lst = pickle.load(open('pre_train/models/dimensions', 'rb'))
+        self.output_dimensions = lst[0]
+        self.state_dimensions = lst[1]
+        self.input_dimensions = lst[2]
+        self.models = dict()
+        # for i in [0,3]:
+        #     self.models[i] = pickle.load(open('pre_train/models/mod_temporal_torch' + '_' + str(i),'rb'))
+        self.model = pickle.load(open('pre_train/models/mod_temporal_torch_3','rb'))
+        # self.model = load_model(open('pre_train/models/mod_temporal_torch','rb'))
         # self.model = load_model(open('pre_train/models/mod_temporal_torch','rb'))
         # self.model = load_model(open('pre_train/models/mod_temporal_torch','rb'))
         self.logger = open('logger', 'w')
@@ -45,16 +56,30 @@ class MyDriver:
         # t = load_model(open('pre_train/models/ustd_torch', 'rb'))
         self.mu = t[0]
         self.std = t[1]
+        print(self.mu)
+        print(self.std)
         # number of previous states used for the prediction
-        self.history = 1
+        # self.history = 20
         self.past_sensors = []
         self.past_command = [np.zeros((48))]
         self.past_command[-1][0] = (1 - self.mu.data[0]) / self.std.data[0]
         self.past_command[-1][2] = (1 - self.mu.data[2]) / self.std.data[2]
         self.it = 0
-        self.input_dimensions = [i for i in range(5, 48)]
-        self.output_dimensions = [3]  # [0, 1, 2, 3, 4]
-        self.state_dimensions = [i for i in range(5, 48)]
+        # self.input_dimensions = [3]+[i for i in range(5, 48)]
+
+        if len(lst) > 3:
+            self.history = lst[3]
+        self.use_lstm = True
+        self.hn = Variable(torch.zeros(1, 256))
+        self.cn = Variable(torch.zeros(1, 256))
+        self.index = {}
+        # names = ['accel', 'brake', 'gear', 'steer', 'clutch']
+        # for i, x in enumerate(self.output_dimensions):
+        #     self.index[names[x]] = i
+        # self.output_dimensions = [3]  # [0, 1, 2, 3, 4]
+        # self.state_dimensions = [i for i in range(5, 48)]
+        self.past_command[-1] = self.past_command[-1][self.input_dimensions]
+        print(time.time() - start)
     @property
     def range_finder_angles(self):
         """Iterable of 19 fixed range finder directions [deg].
@@ -122,6 +147,7 @@ class MyDriver:
             m[i] = carstate.focused_distances_from_edge[i-43]
 
         return m[5:]
+        # return m[self.state_dimensions]
 
     def transform(self, y):
         x = y.copy()
@@ -155,70 +181,85 @@ class MyDriver:
         O = len(self.output_dimensions)
         #multiply speeds by 3.6
         # wheel velocities
-        features = self.carstate_matrix2(carstate).reshape(1,-1)
+        features = self.carstate_matrix2(carstate)[[x - 5 for x in self.state_dimensions]].reshape(1,-1)
         # _logger.info(carstate)
+
         features = Variable(torch.FloatTensor(features))
         # features = Variable(torch.FloatTensor(features))
-        t_features = self.model.transform(features, self.mu[torch.LongTensor(self.input_dimensions)],
-                                              self.std[torch.LongTensor(self.input_dimensions)])
+
+        t_features = self.model.transform(features, self.mu[torch.LongTensor(self.state_dimensions)],
+                                              self.std[torch.LongTensor(self.state_dimensions)])
+        if features[0, 18].data[0] == -1:
+            _logger.info('im out')
+            t_features.data[0, 18:37] = 0
         outCommand = Command()
         if len(self.past_command) >= self.history:
 
             feat2 = t_features.data
-            # print(type(feat2), type(self.past_command[-1]))
-            for i in reversed(range(1, self.history)):
-                feat2 = torch.cat((feat2, torch.FloatTensor(self.past_command[-i]).view(1, -1)), 1)
+            if not self.use_lstm:
+                for i in reversed(range(1, self.history)):
+                    feat2 = torch.cat((feat2, torch.FloatTensor(self.past_command[-i]).view(1, -1)), 1)
             feat2 = Variable(feat2)
-            # if self.it == 1:
-            #     pickle.dump(feat2, open('pre_train/models/first_round', 'wb'))
-            # print('saved')
-            # return
-            t_prediction = self.model(feat2)
-            # t_prediction = self.model((torch.from_numpy(t_features)))
 
+
+            if not self.use_lstm:
+                t_prediction = self.model(feat2)
+            else:
+                # t_prediction, self.hn, self.cn = self.model.forward(feat2, self.hn, self.cn)
+                t_prediction, self.hn = self.model.forward(feat2, self.hn)
+                # t_prediction = self.model.forward(feat2)[0,0,:]
+
+            # _logger.info(self.hn)
             prediction = self.model.back_transform(t_prediction,
                                                    self.mu[torch.LongTensor(self.output_dimensions)],
-                                                   self.std[torch.LongTensor(self.output_dimensions)])[0]
+                                                   self.std[torch.LongTensor(self.output_dimensions)])
+            # prediction3 = self.models[3].back_transform(t_prediction3,
+            #                                            self.mu[torch.LongTensor(self.output_dimensions)],
+            #                                            self.std[torch.LongTensor(self.output_dimensions)])
+
             prediction = prediction[0]
-            #
-            # prediction.data[0] = max(0, prediction.data[0])
-            # prediction.data[1] = max(0, prediction.data[1])
-            prediction.data[0] = max(0, prediction.data[0])
-            # prediction.data[4] = max(0, prediction.data[4])
-            # prediction.data[0] = min(1, prediction.data[0])
-            # prediction.data[1] = min(1, prediction.data[1])
-            prediction.data[0] = min(1, prediction.data[0])
+            # prediction3 = prediction3[0]
+
             # prediction.data[4] = min(1, prediction.data[4])
             # prediction.data[2] = np.rint(prediction.data[2])
+            # prediction.data[4] = max(0, prediction.data[4])
             # prediction.data[2] = max(0, prediction.data[2])
             # prediction.data[2] = min(1, prediction.data[2])
-            outCommand.accelerator = 1#prediction.data[0]
+            # outCommand.accelerator = prediction.data[0]
+            # if prediction.data[0] > 0.005 or prediction.data[0] < -0.005:
+            # _logger.info(prediction.data)
+            # _logger.info(prediction3.data[0])
+            print('we')
+            if self.it > 100:
+                # outCommand.accelerator = prediction.data[0]
+                self.accelerate(carstate, 200, outCommand)
 
-            if self.it > 50:
-                self.accelerate(carstate, 0, outCommand)
-
-                # outCommand.gear = int(prediction.data[2])
+                # outCommand.gear = 1
                 outCommand.steering = prediction.data[0]
+                # self.steer(carstate, 0.0, outCommand)
                 outCommand.brake = 0#prediction.data[1]
                 outCommand.clutch = 0#prediction.data[4]
 
             else:
+                outCommand.accelerator = 1
                 outCommand.gear = 1
                 outCommand.steering = 0
                 outCommand.brake = 0
                 outCommand.clutch = 0
 
-            prediction = self.model.transform(prediction.view(1, -1),
+            t_prediction = self.model.transform(prediction.view(1, -1),
                                               self.mu[torch.LongTensor(self.output_dimensions)],
                                               self.std[torch.LongTensor(self.output_dimensions)])[0]
 
+            # _logger.info(prediction)
+            # if prediction.data[2] < -2:
+            #     print("we2")
+            # _logger.info(carstate)
             # _logger.info(self.it)
-            _logger.info(carstate)
-            _logger.info(self.it)
             # t_features[0, :5] = prediction[:5]
             if self.input_dimensions != self.state_dimensions:
                 t_features_numpy = np.hstack((np.zeros((1, O)), t_features.data.numpy()))
-                t_features_numpy[0, :O] = prediction.data.numpy()[:O]
+                t_features_numpy[0, :O] = t_prediction.data.numpy()[:O]
             else:
                 t_features_numpy = t_features.data.numpy()
             self.past_command.append(t_features_numpy[0, :])
@@ -242,22 +283,21 @@ class MyDriver:
     def accelerate(self, carstate, target_speed, command):
         # compensate engine deceleration, but invisible to controller to
         # prevent braking:
-        # speed_error = 1.0025 * target_speed * MPS_PER_KMH - carstate.speed_x
-        # acceleration = self.acceleration_ctrl.control(
-        #     speed_error,
-        #     carstate.current_lap_time
-        # )
-
+        speed_error = 1.0025 * target_speed * MPS_PER_KMH - carstate.speed_x
+        acceleration = self.acceleration_ctrl.control(
+            speed_error,
+            carstate.current_lap_time
+        )
+        #
         # # stabilize use of gas and brake:
-        # acceleration = math.pow(acceleration, 3)
-        acceleration = command.accelerator
+        acceleration = math.pow(acceleration, 3)
+        # acceleration = command.accelerator
         if acceleration > 0:
 
-            # if abs(carstate.distance_from_center) >= 1:
-            #     off track, reduced grip:
-                # acceleration = min(0.4, acceleration)
-
-            # command.accelerator = min(acceleration, 1)
+            if abs(carstate.distance_from_center) >= 1:
+                acceleration = min(0.4, acceleration)
+            #
+            command.accelerator = min(acceleration, 1)
 
             if carstate.rpm > 8000:
                 command.gear = carstate.gear + 1

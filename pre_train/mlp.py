@@ -1,216 +1,170 @@
-from __future__ import print_function
-
-from pre_train.reader import *
-from sklearn.neural_network import MLPClassifier, MLPRegressor
-import matplotlib.pyplot as plt
-import random
-import pickle
-
-# kwargs = {'num_workers': 4, 'pin_memory': True} if args.cuda else {}
-import numpy as np
-
 import time
-# @profile
+import random
+import torch
+from torch.autograd import Variable
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+from random import shuffle
+import numpy as np
+from pre_train.reader import get_data2, construct_dataset_lstm
+import pickle
+# from .pickler import load_model, save_model
+import copy
+from pre_train.standard_nn import Standard_nn
+torch.manual_seed(42)
 
-def create_data(X):
-    #remember that at the beginning, each row has the first 6 entries
-    # as the outputs observed (aka desired for the mlp)
+class MLP2(Standard_nn):
+    def __init__(self, input_dimensions, output_dimensions, state_dimensions, batch_size, history_size, cuda, epochs):
+        self.input_size = len(input_dimensions)
+        self.output_size = len(output_dimensions)
+        self.state_dimensions = len(state_dimensions)
+        self.history_size = history_size
+        # nn.LSTM.__init__(self, input_size=self.input_size, hidden_size=256, num_layers=1)
+        Standard_nn.__init__(self, input_dimensions, output_dimensions, state_dimensions, batch_size, cuda, epochs)
+        self.lr_decay = 0.8
+        self.fc1 = nn.Linear(self.input_size * (history_size - 1) + self.state_size, 512)
+        self.drop = nn.Dropout(0.1)
+        self.drop2 = nn.Dropout(0.1)
+        self.bn1 = nn.BatchNorm1d(512)
+        self.bn2 = nn.BatchNorm1d(512)
+        self.fc2 = nn.Linear(512, 256)
+        self.fc3 = nn.Linear(256, self.output_size)
+        self.loss = nn.MSELoss()
 
-    data = np.zeros((X.shape[0]-1, X.shape[1]))
-    labels = np.zeros((X.shape[0]-1, 5))
+        self.optimizer = optim.Adam(self.parameters(), lr=0.005)
 
-    data = X[1:, :]
-    data[:, :5] = X[:-1, :5]
-    labels = X[1:, :5]
+    def forward(self, x):
+        xorig = x[:]
+        x = F.selu(self.fc1(x))
+        # x = self.drop(x)
+        # x = torch.cat((x, xorig), 1)
+        x = F.selu(self.fc2(x))
+        # x = self.drop2(x)
+        # x = torch.cat((x, xorig), 1)
+        x = self.fc3(x)
+        # x[0] = F.sigmoid(x[0])
+        # x[1] = F.sigmoid(x[1])
+        # x[3] = F.tanh(x[3])
+        # x[4] = F.sigmoid(x[4])
+        return x
 
-    return data, labels
 
-def preprocess(data):
-    pass
 
-def go():
-    X, _ = get_data2(files='forza_3', folder='../data/')
-    # u = X.mean(0)
-    # std = X.std(0)
-    # X = (X - u)
-    # for i in range(X.shape[1]):
-    #     if std[i] != 0:
-    #         X[:, i] /= std[i]
-    errs = []
-    losses = []
-    k = 500
-    start = time.time()
-    # np.random.permutation(X.shape[0])
-    # X = np.random.permutation(X)
-    # for i in range(10):
+    def evaluate(self, datasets):
+        """Evaluate a model on a data set."""
+        # correct = 0.0
+        s = 0
+        it = 0
+        test_loss = 0.0
+        start = time.time()
+        avg_prediction = Variable(torch.zeros(self.output_size))
+        losses = []
+        for dataset, labels in datasets:
+            # for every
+            s = 0
+            test_loss = 0.0
+            # dataset, labels = datasett
+            for i in range(int(dataset.size(0) / self.batch_size)):
+                lookup_tensor = dataset[i:i + self.batch_size]
+                target = labels[i:i + self.batch_size]
 
-    train, target = create_data(X)
+                scores = self.forward(lookup_tensor)
+                # scores2 = self.back_transform2(scores, self.mu, self.std)
 
-    mlp = MLPRegressor(verbose=0, random_state=0, alpha=0.01, hidden_layer_sizes=512, max_iter=1000, **{'solver': 'adam', 'learning_rate_init': 0.0001})
-    mlp_gear = MLPClassifier(verbose=0, random_state=0, alpha=0.0001, hidden_layer_sizes=1024, max_iter=500, **{'solver': 'adam', 'learning_rate_init': 0.0001})
-    train_gear = np.copy(train)
-    train_gear = np.delete(train_gear, [0,1,3,4], axis=1)
-    target_gear = np.copy(target)
-    target_gear = np.delete(target_gear, [0,1,3,4], axis=1)
-    target_gear = target_gear.squeeze()
-    # res = mlp.fit(train, target)
-    res_gear = mlp_gear.fit(train_gear, target_gear)
-    # print(res)
-    print(train.shape, target.shape)
-    print( "Training set score: %f" % mlp_gear.score(train_gear, target_gear))
-    print( "Training set loss: %f" % mlp_gear.loss_)
-    # pred = mlp.predict(X[:k, 3:])
-    # pred = mlp.predict(target)
-    # mat = np.zeros((2,2))
+                # target2 = self.back_transform2(target, self.mu, self.std)
+                output = self.loss(scores, target)
+                test_loss += output.data[0]
 
-    Xtest, _ = get_data2(files = 'forza_4', folder = '../data/')
-   #  a = np.array([[  1.00000000e+00 ,  0.00000000e+00 ,  1.00000000e+00 ,  0.00000000e+00,
-   #  0.00000000e+00 ,  0.00000000e+00 , -3.48266000e-04 , -9.82000000e-01,
-   #  0.00000000e+00 ,  5.75910000e+03 ,  0.00000000e+00 ,  9.40000000e+01,
-   #  0.00000000e+00 ,  1.00000000e+00 ,  9.42478000e+02 , -5.88597000e-03,
-   # -2.78847000e-02 ,  1.79881000e-04 ,  0.00000000e+00 ,  0.00000000e+00,
-   #  0.00000000e+00 ,  0.00000000e+00 ,  0.00000000e+00 ,  0.00000000e+00,
-   #  0.00000000e+00  , 0.00000000e+00  , 0.00000000e+00  , 0.00000000e+00,
-   #  0.00000000e+00 ,  0.00000000e+00 ,  0.00000000e+00 ,  0.00000000e+00,
-   #  0.00000000e+00 ,  0.00000000e+00  , 0.00000000e+00 ,  0.00000000e+00,
-   #  0.00000000e+00 , -3.33357000e-01 ,  0.00000000e+00 ,  0.00000000e+00,
-   #  1.16041715e+02 , -1.15034455e+02 ,  3.45256000e-01 , -1.00000000e+00,
-   # -1.00000000e+00 , -1.00000000e+00 , -1.00000000e+00 , -1.00000000e+00,
-   #  0.00000000e+00]])
-   #  Xtest = np.vstack((Xtest, a))
-   #  Xtest = np.vstack((Xtest, a))
-    xorig = Xtest.copy()
-    # Xtest -= u
-    # for i in range(X.shape[1]):
-    #     if std[i] != 0:
-    #         Xtest[:, i] /= std[i]
-    test, target_test = create_data(Xtest)
-    # train_gear = np.copy(train)
-    test = np.delete(test, [0, 1, 3, 4], axis=1)
-    # target_gear = np.copy(target)
-    target_test = np.delete(target_test, [0, 1, 3, 4], axis=1)
-    pred = mlp_gear.predict(test)
-    print(mlp_gear.score(test, target_test))
-    # for i in range(X.shape[1]):
-    #     if std[i] != 0:
-    #         test[ i] *= std[i]
-    #         if i < 5:
-    #             target_test[i] *= std[i]
-    #             pred[i] *= std[i]
-    # test += u
-    # target_test += u[:5]
-    # pred += u[:5]
-    print(pred[:5])
-    print(target_test[:5])
-    print(xorig[1:, :5])
-    #
+                # backward pass
+                self.zero_grad()
+                # output.backward()
 
-    # print(pred[-5:])
-    # print(target_test[-5:])
-    # print(xorig[-5:, :5])
-    #
-    print(pred[2500:2505])
-    print(target_test[2500:2505])
-    print(xorig[2501:2506, :5])
+                # update weights
+                # self.optimizer.step()
+                s += 1
+            losses.append(test_loss/ s)
+        print("evaluation test set: , time=%.2fs, \t train loss/sent=%.4f" %
+              # ( test_loss.cpu().data.numpy() / s, time.time() - start))
+              (time.time() - start, 0.0))
+        print(losses)
 
-    # errlist = [(a - b)**2 / k for (a, b) in zip(pred, target)]
-    # for j in range(pred.shape[0]):
-    #     mat[int(pred[j]), int(target[j])] += 1
-    # errlist = [1 if a == b else 0 for (a, b) in zip(pred, target)]
-    # for j in range(pred.shape[0]):
-    #     v = 0 if pred[j] < 0.6 else 1
-    #     mat[v, int(target[j])] += 1
 
-    # print(list(sorted(errlist)))
-    # err = sum(errlist)
-    # print(err)
-    # print(i, err / k)
-    # losses.append(err / k)
-    # errs.append(err)
-    print(time.time() - start)
-    plt.plot(mlp_gear.loss_curve_[1:], label='aaa')
-    plt.show()
+        return test_loss / s
 
-    # pickle.dump(res, open('models/mod_temporal2', 'wb') )
-    # pickle.dump([u, std], open('models/ustd', 'wb'))
 
-go()
-# print(losses)
-# print(errs)
+    def cuda(self):
+        super(MLP2, self).cuda()
+        if self.use_cuda:
+            for i, (x, y) in enumerate(self.datasets):
+                self.datasets[i] = (x.cuda(), y.cuda())
+            for i, (x, y) in enumerate(self.datasets_test):
+                self.datasets_test[i] = (x.cuda(), y.cuda())
+            # for i, (x, y) in enumerate(self.datasets_orig):
+            #     self.datasets_orig[i] = (x.cuda(), y.cuda())
+            # for i, (x, y) in enumerate(self.datasets_test_orig):
+            #     self.datasets_test_orig[i] = (x.cuda(), y.cuda())
+            # self.datasets_orig = self.datasets_orig.cuda()
+            # self.datasets_test_orig = self.datasets_test_orig.cuda()
+            self.mu = self.mu.cuda()
+            self.std = self.std.cuda()
 
-#[array([ 0.1139626 ,  0.13472915,  0.0732063 ]), array([ 0.16472437,  0.16387508,  0.08740516]), array([ 0.12980534,  0.1593366 ,  0.06941525]), array([ 0.17634797,  0.19071809,  0.08039816]), array([ 0.13172097,  0.157337  ,  0.06169863]), array([ 0.13400031,  0.14290791,  0.06717543]), array([ 0.1090132 ,  0.12784908,  0.05887466]), array([ 0.10816669,  0.15821168,  0.07411749]), array([ 0.11288099,  0.14322833,  0.07627858]), array([ 0.16449471,  0.226323  ,  0.11529769])]
+    # @profile
+    def train(self, epochs=None):
+        # self.normalize(self.datasets, self.datasets_test)
+        self.cuda()
+        if epochs == None:
+            epochs = self.epochs
+        print(epochs)
+        print(self.use_cuda)
+        for ITER in range(1, epochs+1):
+            train_loss = 0.0
+            start = time.time()
+            s = 0
+            if ITER % 25 == 0 and ITER > 30:
+                for param_group in self.optimizer.param_groups:
+                    param_group['lr'] *= self.lr_decay
+            shuffle(self.datasets)
+            for dataset, labels in self.datasets:
+                # for every
+                # dataset, labels = datasett
+                for i in range(int(dataset.size(0) / self.batch_size)):
+                    lookup_tensor = dataset[i:i+self.batch_size]
+                    target = labels[i:i+self.batch_size]
 
-# print(__doc__)
-# import matplotlib.pyplot as plt
-# from sklearn.neural_network import MLPClassifier
-# from sklearn.preprocessing import MinMaxScaler
-# from sklearn import datasets
-#
-# # different learning rate schedules and momentum parameters
-# params = [{'solver': 'sgd', 'learning_rate': 'constant', 'momentum': 0,
-#            'learning_rate_init': 0.2},
-#           {'solver': 'sgd', 'learning_rate': 'constant', 'momentum': .9,
-#            'nesterovs_momentum': False, 'learning_rate_init': 0.2},
-#           {'solver': 'sgd', 'learning_rate': 'constant', 'momentum': .9,
-#            'nesterovs_momentum': True, 'learning_rate_init': 0.2},
-#           {'solver': 'sgd', 'learning_rate': 'invscaling', 'momentum': 0,
-#            'learning_rate_init': 0.2},
-#           {'solver': 'sgd', 'learning_rate': 'invscaling', 'momentum': .9,
-#            'nesterovs_momentum': True, 'learning_rate_init': 0.2},
-#           {'solver': 'sgd', 'learning_rate': 'invscaling', 'momentum': .9,
-#            'nesterovs_momentum': False, 'learning_rate_init': 0.2},
-#           {'solver': 'adam', 'learning_rate_init': 0.01}]
-#
-# labels = ["constant learning-rate", "constant with momentum",
-#           "constant with Nesterov's momentum",
-#           "inv-scaling learning-rate", "inv-scaling with momentum",
-#           "inv-scaling with Nesterov's momentum", "adam"]
-#
-# plot_args = [{'c': 'red', 'linestyle': '-'},
-#              {'c': 'green', 'linestyle': '-'},
-#              {'c': 'blue', 'linestyle': '-'},
-#              {'c': 'red', 'linestyle': '--'},
-#              {'c': 'green', 'linestyle': '--'},
-#              {'c': 'blue', 'linestyle': '--'},
-#              {'c': 'black', 'linestyle': '-'}]
-#
-#
-# def plot_on_dataset(X, y, ax, name):
-#     # for each dataset, plot learning for each learning strategy
-#     print("\nlearning on dataset %s" % name)
-#     ax.set_title(name)
-#     X = MinMaxScaler().fit_transform(X)
-#     mlps = []
-#     if name == "digits":
-#         # digits is larger but converges fairly quickly
-#         max_iter = 15
-#     else:
-#         max_iter = 400
-#
-#     for label, param in zip(labels, params):
-#         print("training: %s" % label)
-#         mlp = MLPClassifier(verbose=0, random_state=0,
-#                             max_iter=max_iter, **param)
-#         mlp.fit(X, y)
-#         mlps.append(mlp)
-#         print("Training set score: %f" % mlp.score(X, y))
-#         print("Training set loss: %f" % mlp.loss_)
-#     for mlp, label, args in zip(mlps, labels, plot_args):
-#             ax.plot(mlp.loss_curve_, label=label, **args)
-#
-#
-# fig, axes = plt.subplots(2, 2, figsize=(15, 10))
-# # load / generate some toy datasets
-# iris = datasets.load_iris()
-# digits = datasets.load_digits()
-# data_sets = [(iris.data, iris.target),
-#              (digits.data, digits.target),
-#              datasets.make_circles(noise=0.2, factor=0.5, random_state=1),
-#              datasets.make_moons(noise=0.3, random_state=0)]
-#
-# for ax, data, name in zip(axes.ravel(), data_sets, ['iris', 'digits',
-#                                                     'circles', 'moons']):
-#     plot_on_dataset(*data, ax=ax, name=name)
-#
-# fig.legend(ax.get_lines(), labels, ncol=3, loc="upper center")
-plt.show()
+                    scores = self.forward(lookup_tensor)
+                    # scores2 = self.back_transform2(scores, self.mu, self.std)
+
+                    # target2 = self.back_transform2(target, self.mu, self.std)
+                    output = self.loss(scores, target)
+                    train_loss += output.data[0]
+                    if ITER % 249 == 0:
+                        print('we')
+                    # backward pass
+
+                    self.zero_grad()
+                    output.backward()
+
+                    # update weights
+                    self.optimizer.step()
+                    s += 1
+
+            print("iter %r: train loss/sent=%.4f, time=%.2fs" %
+                  (ITER, train_loss / s, time.time() - start))
+            if ITER % 50 == 0:
+                self.evaluate(self.datasets_test)
+            # evaluate
+        # self.save_model(self, open('models/mod_temporal_torch', 'wb'))
+        # pickle.dump(self, open('models/mod_temporal_torch', 'wb') )
+        # self.save_model([self.mu, self.std], open('models/ustd_torch', 'wb'))
+        self.use_cuda = False
+        self.datasets = None
+        self.datasets_test = None
+        self.datasets_orig = None
+        self.datasets_orig_test = None
+        #
+        self.cpu()
+        self.mu = self.mu.cpu()
+        self.std = self.std.cpu()
+        return train_loss, self.mu, self.std
+            # print("iter %r: test acc=%.4f" % (ITER, acc))

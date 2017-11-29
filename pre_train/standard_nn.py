@@ -8,13 +8,15 @@ import torch.nn.functional as F
 import numpy as np
 from pre_train.reader import get_data2, construct_dataset
 import pickle
+from sklearn.decomposition import PCA
+
 # from .pickler import load_model, save_model
 import copy
 torch.manual_seed(42)
 
-class MLP(nn.Module):
-    def __init__(self, input_dimensions, output_dimensions, state_dimensions, batch_size, history_size, cuda, epochs):
-        super(MLP, self).__init__()
+class Standard_nn(nn.Module):
+    def __init__(self, input_dimensions, output_dimensions, state_dimensions, batch_size, cuda, epochs):
+        super(Standard_nn, self).__init__()
         self.output_size = len(output_dimensions)
         self.output_dimensions = output_dimensions
         self.state_size = len(state_dimensions)
@@ -23,44 +25,17 @@ class MLP(nn.Module):
         self.input_dimensions = input_dimensions
 
         self.batch_size = batch_size
-        self.history_size = history_size
         self.use_cuda = cuda
         self.epochs = epochs
 
-        self.fc1 = nn.Linear(self.input_size*(history_size-1) + self.state_size, 256)
-        self.drop = nn.Dropout(0.1)
-        self.drop2 = nn.Dropout(0.1)
-        # self.bn1 = nn.BatchNorm1d(512)
-        self.fc2 = nn.Linear(256, 64)
-        # self.fc3 = nn.Linear(512, 512)
-        self.fc3 = nn.Linear(64, self.output_size)
-        self.bn = nn.BatchNorm1d(256)
-        self.bn2 = nn.BatchNorm1d(64)
-        self.bn3 = nn.BatchNorm1d(512)
+
         self.datasets = []
         self.datasets_orig = []
         self.datasets_test = []
         self.datasets_test_orig = []
-        self.optimizer = optim.Adam(self.parameters(), lr=0.00001,weight_decay=0.001)
 
-        self.loss = nn.MSELoss()
         self.mu = Variable(torch.zeros(self.input_size))
         self.std = Variable(torch.zeros(self.input_size))
-
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        # x = self.drop(x)
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        # x = self.drop2(x)
-        # x = self.fc4(x)
-        # x[0] = F.sigmoid(x[0])
-        # x[1] = F.sigmoid(x[1])
-        # x[3] = F.tanh(x[3])
-        # x[4] = F.sigmoid(x[4])
-        return x
-
-
 
     def evaluate(self, datasets):
         """Evaluate a model on a data set."""
@@ -101,7 +76,7 @@ class MLP(nn.Module):
 
 
 
-    def init_datasets(self, fnames, fnames_test, normalize=True):
+    def init_datasets(self, fnames, fnames_test, construct_dataset_function, normalize=True):
         # fnames = ['forza_1']
         # fnames_test = ['forza_test']
         self.datasets = []
@@ -130,20 +105,26 @@ class MLP(nn.Module):
         l2 = []
         for data in self.datasets:
             # data2, label2 = construct_dataset(data.data.numpy(), [i for i in range(48)], [i for i in range(5, 48)], [0,1,2,3,4], 4)
-            data2, label2 = construct_dataset(data.data.numpy(), self.input_dimensions, self.state_dimensions, self.output_dimensions, self.history_size)
+            data2, label2 = construct_dataset_function(data.data.numpy(), self.input_dimensions, self.state_dimensions, self.output_dimensions, self.history_size)
             data2 = Variable(torch.FloatTensor(data2))
             label2 = Variable(torch.FloatTensor(label2))
             l.append((data2, label2))
 
         for data in self.datasets_test:
             # data2, label2 = construct_dataset(data.data.numpy(), [i for i in range(48)], [i for i in range(5, 48)], [0, 1,2,3,4], 4, all=True)
-            data2, label2 = construct_dataset(data.data.numpy(), self.input_dimensions, self.state_dimensions, self.output_dimensions, self.history_size, all=True)
+            data2, label2 = construct_dataset_function(data.data.numpy(), self.input_dimensions, self.state_dimensions, self.output_dimensions, self.history_size, all=True)
             data2 = Variable(torch.FloatTensor(data2))
             label2 = Variable(torch.FloatTensor(label2))
             l2.append((data2, label2))
         self.datasets = l
         self.datasets_test = l2
 
+    # def get_normalization_pca(self, datasets):
+    #     data = datasets[0]
+    #     for i in range(1, len(datasets)):
+    #         data = np.vstack((data, datasets[i]))
+    #     self.pca = PCA(n_components=data.shape[1], svd_solver='full', whiten=True)
+    #     res = self.pca.fit(data)
 
     def get_normalization(self, datasets):
         N = sum([len(x) for x in datasets])
@@ -167,8 +148,10 @@ class MLP(nn.Module):
 
     def transform(self, Y, mu, std):
         X = Variable(Y.data.clone())
-
-        X = X - mu
+        # print(X)
+        # print(X.size(1))
+        # print(mu[:X.size(1)])
+        X = X - mu[:X.size(1)]
         for i in range(X.size(1)):
             if std.data[i] > 0:
                 X[:, i] /= std[i]
@@ -180,12 +163,12 @@ class MLP(nn.Module):
             if std.data[i] > 0:
                 for j in range(X.size(0)):
                     X[j, i] = X[j, i] * std[i]
-        X += mu
+        X += mu[:X.size(1)]
         return X
 
     def transform2(self, Y, mu, std):
         X = Y
-        X = X - mu
+        X = X - mu[:X.size(1)]
         for i in range(X.size(1)):
             if std.data[i] > 0:
                 X[:, i] /= std[i]
@@ -201,7 +184,7 @@ class MLP(nn.Module):
                     stdv = stdv.cuda()
 
                 X[:, i] = X[:, i].clone()* stdv
-        X += mu
+        X += mu[:X.size(1)]
         return X
 
     def normalize(self, datasets, datasets_test, mu, std):
@@ -214,7 +197,7 @@ class MLP(nn.Module):
         return mu, std
 
     def cuda(self):
-        super(MLP, self).cuda()
+        super(Standard_nn, self).cuda()
         if self.use_cuda:
             for i, (x, y) in enumerate(self.datasets):
                 self.datasets[i] = (x.cuda(), y.cuda())
@@ -267,8 +250,8 @@ class MLP(nn.Module):
 
             print("iter %r: train loss/sent=%.4f, time=%.2fs" %
                   (ITER, train_loss / s, time.time() - start))
-            # if ITER % 150 == 0:
-            #     self.evaluate(self.datasets_test)
+            if ITER % 5 == 0:
+                self.evaluate(self.datasets_test)
             # evaluate
         # self.save_model(self, open('models/mod_temporal_torch', 'wb'))
         # pickle.dump(self, open('models/mod_temporal_torch', 'wb') )
@@ -278,7 +261,7 @@ class MLP(nn.Module):
         self.datasets_test = None
         self.datasets_orig = None
         self.datasets_orig_test = None
-        #
+
         self.cpu()
         self.mu = self.mu.cpu()
         self.std = self.std.cpu()
