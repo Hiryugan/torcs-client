@@ -23,7 +23,7 @@ class myLSTM(Standard_nn):
         Standard_nn.__init__(self, input_dimensions, output_dimensions, state_dimensions, batch_size, cuda, epochs)
         self.hidden_size = 256
         self.init_lstm()
-        self.lr_decay = 0.8
+        self.lr_decay = 0.95
 
     def init_lstm(self):
         self.lstmCell = nn.LSTM(input_size=self.input_size, hidden_size=self.hidden_size)
@@ -33,7 +33,7 @@ class myLSTM(Standard_nn):
         self.rnnCell = nn.RNN(input_size=self.input_size, hidden_size=self.hidden_size, nonlinearity='relu')
 
         self.loss = nn.MSELoss()
-        self.optimizer = optim.Adam(self.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(self.parameters(), lr=0.005)
         self.fc1 = nn.Linear(self.hidden_size, self.hidden_size)
         self.fce = nn.Linear(self.input_size, self.hidden_size)
         self.fc2 = nn.Linear(self.hidden_size, self.output_size)
