@@ -67,8 +67,7 @@ class State(Value):
 
     def __init__(self, sensor_dict):
         """Creates decoded car state from sensor value dictionary."""
-        self.angle = self.float_value(sensor_dict, 'angle') #* \
-            #DEGREE_PER_RADIANS
+        self.angle = self.float_value(sensor_dict, 'angle') * DEGREE_PER_RADIANS
         self.current_lap_time = self.float_value(sensor_dict, 'curLapTime')
         self.damage = self.int_value(sensor_dict, 'damage')
         self.distance_from_start = self.float_value(
@@ -82,20 +81,20 @@ class State(Value):
         self.opponents = self.floats_value(sensor_dict, 'opponents')
         self.race_position = self.int_value(sensor_dict, 'racePos')
         self.rpm = self.float_value(sensor_dict, 'rpm')
-        self.speed_x = self.float_value(sensor_dict, 'speedX') #* MPS_PER_KMH
-        self.speed_y = self.float_value(sensor_dict, 'speedY') #* MPS_PER_KMH
-        self.speed_z = self.float_value(sensor_dict, 'speedZ') #* MPS_PER_KMH
+        self.speed_x = self.float_value(sensor_dict, 'speedX') * MPS_PER_KMH
+        self.speed_y = self.float_value(sensor_dict, 'speedY') * MPS_PER_KMH
+        self.speed_z = self.float_value(sensor_dict, 'speedZ') * MPS_PER_KMH
         self.distances_from_edge = self.floats_value(sensor_dict, 'track')
         self.distance_from_center = self.float_value(sensor_dict, 'trackPos')
         self.wheel_velocities = tuple(
-            # v * DEGREE_PER_RADIANS for v in self.floats_value(
-            #     sensor_dict,
-            #     'wheelSpinVel'
-            # )
-            v for v in self.floats_value(
+            v * DEGREE_PER_RADIANS for v in self.floats_value(
                 sensor_dict,
                 'wheelSpinVel'
             )
+            # v for v in self.floats_value(
+            #     sensor_dict,
+            #     'wheelSpinVel'
+            # )
         )
         self.z = self.float_value(sensor_dict, 'z')
 
@@ -144,7 +143,7 @@ class Command(Value):
             1: full left, [-1;1]. Full turn results in an approximate wheel
             rotation of 21 degrees.
         focus: Direction of driver's focus, resulting in corresponding
-            ``State.focused_distances_from_edge``, [-90;90], deg.
+            `State.focused_distances_from_edge`, [-90;90], deg.
     """
 
     def __init__(self):
@@ -153,6 +152,7 @@ class Command(Value):
         self.gear = 0
         self.steering = 0.0
         self.focus = 0.0
+        self.meta = 0.0
 
     @property
     def actuator_dict(self):
@@ -163,5 +163,39 @@ class Command(Value):
             steer=[self.steering],
             clutch=[0],  # server car does not need clutch control?
             focus=[self.focus],
-            meta=[0]  # no support for server restart via meta=1
+            meta=[self.meta]  # no support for server restart via meta=1
         )
+#
+# class Command(Value):
+#     """Command to drive car during next control cycle.
+#
+#     Attributes:
+#         accelerator: Accelerator, 0: no gas, 1: full gas, [0;1].
+#         brake:  Brake pedal, [0;1].
+#         gear: Next gear. -1: reverse, 0: neutral,
+#             [1;6]: corresponding forward gear.
+#         steering: Rotation of steering wheel, -1: full right, 0: straight,
+#             1: full left, [-1;1]. Full turn results in an approximate wheel
+#             rotation of 21 degrees.
+#         focus: Direction of driver's focus, resulting in corresponding
+#             ``State.focused_distances_from_edge``, [-90;90], deg.
+#     """
+#
+#     def __init__(self):
+#         self.accelerator = 0.0
+#         self.brake = 0.0
+#         self.gear = 0
+#         self.steering = 0.0
+#         self.focus = 0.0
+#
+#     @property
+#     def actuator_dict(self):
+#         return dict(
+#             accel=[self.accelerator],
+#             brake=[self.brake],
+#             gear=[self.gear],
+#             steer=[self.steering],
+#             clutch=[0],  # server car does not need clutch control?
+#             focus=[self.focus],
+#             meta=[0]  # no support for server restart via meta=1
+#         )

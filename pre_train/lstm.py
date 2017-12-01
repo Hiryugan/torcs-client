@@ -21,9 +21,9 @@ class myLSTM(Standard_nn):
         self.history_size = history_size
         # nn.LSTM.__init__(self, input_size=self.input_size, hidden_size=256, num_layers=1)
         Standard_nn.__init__(self, input_dimensions, output_dimensions, state_dimensions, batch_size, cuda, epochs)
-        self.hidden_size = 512
+        self.hidden_size = 256
         self.init_lstm()
-        self.lr_decay = 0.95
+        self.lr_decay = 0.8
 
     def init_lstm(self):
         self.lstmCell = nn.LSTM(input_size=self.input_size, hidden_size=self.hidden_size)
@@ -33,7 +33,7 @@ class myLSTM(Standard_nn):
         self.rnnCell = nn.RNN(input_size=self.input_size, hidden_size=self.hidden_size, nonlinearity='relu')
 
         self.loss = nn.MSELoss()
-        self.optimizer = optim.Adam(self.parameters(), lr=0.005)
+        self.optimizer = optim.Adam(self.parameters(), lr=0.002)
         self.fc1 = nn.Linear(self.hidden_size, self.hidden_size)
         self.fce = nn.Linear(self.input_size, self.hidden_size)
         self.fc2 = nn.Linear(self.hidden_size, self.output_size)
@@ -138,34 +138,37 @@ class myLSTM(Standard_nn):
         test_loss_tot = 0.0
         start = time.time()
         losses = []
+        h0 = Variable(torch.cuda.FloatTensor(1, self.batch_size, self.hidden_size).fill_(0.0))
+        # c0 = Variable(torch.zeros(self.batch_size, self.hidden_size)).cuda()
+        c0 = Variable(torch.cuda.FloatTensor(1, self.batch_size, self.hidden_size).fill_(0.0))
+
         for dataset, labels in datasets:
-            # for every
-            # dataset, labels = datasett
-            s = 0
-            # self.hn = Variable(torch.zeros(self.batch_size, self.hidden_size))
-            # self.cn = Variable(torch.zeros(self.batch_size, self.hidden_size))
             test_loss = 0.0
+            s = 0
+
+            self.hn = Variable(h0.data.clone())
+            self.cn = Variable(c0.data.clone())
             for j in range(int(dataset.size(1) / self.batch_size)):
-                i = random.randint(0, int(dataset.size(1) - self.batch_size) - 1)
+                i = j * self.batch_size
+                self.hn = Variable(self.hn.data)
+                self.cn = Variable(self.cn.data)
+
                 lookup_tensor = dataset[:, i:i + self.batch_size, :]
-                target = labels[:, i:i + self.batch_size, :]
+                target = labels[:, i:i + self.batch_size:, :]
 
-                scores = self.forward(lookup_tensor)
-                # scores2 = self.back_transform2(scores, self.mu, self.std)
+                scores, self.hn = self.forward(lookup_tensor, self.hn)
 
-                # target2 = self.back_transform2(target, self.mu, self.std)
                 output = self.loss(scores, target)
+
                 test_loss += output.data[0]
                 test_loss_tot += output.data[0]
-                # backward pass
-                self.zero_grad()
-                # output.backward()
 
-                # update weights
-                # self.optimizer.step()
+                # backward pass
+
+                self.zero_grad()
+
                 s += 1
                 s_tot += 1
-
             losses.append(test_loss / s)
         print("evaluation test set: , time=%.2fs, \t train loss/sent=%.4f" %
               # ( test_loss.cpu().data.numpy() / s, time.time() - start))
@@ -216,6 +219,7 @@ class myLSTM(Standard_nn):
                 for j in range(int(dataset.size(1) / self.batch_size)):
                     # i = random.randint(0, int(dataset.size(1) - self.batch_size) - 1)
                     i = j*self.batch_size
+                    # print(j, i)
                     self.hn = Variable(self.hn.data)
                     self.cn = Variable(self.cn.data)
                     # self.hn = Variable(torch.cuda.FloatTensor(self.batch_size, self.hidden_size).fill_(0.0))
@@ -236,7 +240,7 @@ class myLSTM(Standard_nn):
 
                     train_loss += output.data[0]
                     train_loss_tot += output.data[0]
-                    if ITER % 100 == 0:
+                    if ITER % 150 == 0:
                         print('we')
                     # backward pass
 
@@ -250,8 +254,8 @@ class myLSTM(Standard_nn):
             print(losses)
             print("iter %r: train loss/sent=%.4f, time=%.2fs" %
                   (ITER, train_loss_tot / s_tot, time.time() - start))
-            # if ITER % epochs == 0:
-            #     self.evaluate(self.datasets_test)
+            if ITER % 20 == 0:
+                self.evaluate(self.datasets_test)
             # evaluate
         # self.save_model(self, open('models/mod_temporal_torch', 'wb'))
         # pickle.dump(self, open('models/mod_temporal_torch', 'wb') )

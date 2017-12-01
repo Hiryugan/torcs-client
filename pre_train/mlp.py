@@ -23,16 +23,16 @@ class MLP2(Standard_nn):
         # nn.LSTM.__init__(self, input_size=self.input_size, hidden_size=256, num_layers=1)
         Standard_nn.__init__(self, input_dimensions, output_dimensions, state_dimensions, batch_size, cuda, epochs)
         self.lr_decay = 0.8
-        self.fc1 = nn.Linear(self.input_size * (history_size - 1) + self.state_size, 512)
+        self.fc1 = nn.Linear(self.input_size * (history_size - 1) + self.state_size, 256)
         self.drop = nn.Dropout(0.1)
         self.drop2 = nn.Dropout(0.1)
         self.bn1 = nn.BatchNorm1d(512)
         self.bn2 = nn.BatchNorm1d(512)
-        self.fc2 = nn.Linear(512, 256)
+        self.fc2 = nn.Linear(256, 256)
         self.fc3 = nn.Linear(256, self.output_size)
         self.loss = nn.MSELoss()
-
-        self.optimizer = optim.Adam(self.parameters(), lr=0.005)
+        # self.conv1 = nn.Conv1d()
+        self.optimizer = optim.Adam(self.parameters(), lr=0.0001)
 
     def forward(self, x):
         xorig = x[:]
@@ -54,9 +54,9 @@ class MLP2(Standard_nn):
     def evaluate(self, datasets):
         """Evaluate a model on a data set."""
         # correct = 0.0
-        s = 0
+        s_tot = 0
         it = 0
-        test_loss = 0.0
+        test_loss_tot = 0.0
         start = time.time()
         avg_prediction = Variable(torch.zeros(self.output_size))
         losses = []
@@ -65,7 +65,8 @@ class MLP2(Standard_nn):
             s = 0
             test_loss = 0.0
             # dataset, labels = datasett
-            for i in range(int(dataset.size(0) / self.batch_size)):
+            for j in range(int(dataset.size(0) / (self.batch_size*self.history_size))):
+                i = j*self.batch_size
                 lookup_tensor = dataset[i:i + self.batch_size]
                 target = labels[i:i + self.batch_size]
 
@@ -75,6 +76,7 @@ class MLP2(Standard_nn):
                 # target2 = self.back_transform2(target, self.mu, self.std)
                 output = self.loss(scores, target)
                 test_loss += output.data[0]
+                test_loss_tot += output.data[0]
 
                 # backward pass
                 self.zero_grad()
@@ -83,10 +85,11 @@ class MLP2(Standard_nn):
                 # update weights
                 # self.optimizer.step()
                 s += 1
+                s_tot += 1
             losses.append(test_loss/ s)
         print("evaluation test set: , time=%.2fs, \t train loss/sent=%.4f" %
               # ( test_loss.cpu().data.numpy() / s, time.time() - start))
-              (time.time() - start, 0.0))
+              (time.time() - start, test_loss_tot / s_tot))
         print(losses)
 
 
@@ -117,19 +120,31 @@ class MLP2(Standard_nn):
             epochs = self.epochs
         print(epochs)
         print(self.use_cuda)
+
         for ITER in range(1, epochs+1):
-            train_loss = 0.0
+            losses = []
             start = time.time()
-            s = 0
+            s_tot = 0.0
+            train_loss_tot = 0.0
             if ITER % 25 == 0 and ITER > 30:
                 for param_group in self.optimizer.param_groups:
                     param_group['lr'] *= self.lr_decay
             shuffle(self.datasets)
             for dataset, labels in self.datasets:
+                train_loss = 0.0
+                s = 0.0
                 # for every
                 # dataset, labels = datasett
-                for i in range(int(dataset.size(0) / self.batch_size)):
+                # for j in range(int(dataset.size(0) / (self.batch_size*self.history_size))):
+                for j in range(int(dataset.size(0) / (self.batch_size))):
+                # for j in range(50):
+                    # x = random.randint(0, len(self.datasets) - 1)
+                    # i = random.randint(0, self.datasets[x][0].size(0) - self.history_size - 1)
+                    # i = random.randint(0, dataset.size(0) - self.history_size - 1)
+                    #
+                    i = j*self.batch_size
                     lookup_tensor = dataset[i:i+self.batch_size]
+                    # target = labels[i:i+self.batch_size]
                     target = labels[i:i+self.batch_size]
 
                     scores = self.forward(lookup_tensor)
@@ -138,8 +153,9 @@ class MLP2(Standard_nn):
                     # target2 = self.back_transform2(target, self.mu, self.std)
                     output = self.loss(scores, target)
                     train_loss += output.data[0]
-                    if ITER % 249 == 0:
-                        print('we')
+                    train_loss_tot += output.data[0]
+                    # if ITER % 10 == 0:
+                    #     print('we')
                     # backward pass
 
                     self.zero_grad()
@@ -148,10 +164,12 @@ class MLP2(Standard_nn):
                     # update weights
                     self.optimizer.step()
                     s += 1
-
+                    s_tot += 1
+                losses.append(train_loss / s)
+            print(losses)
             print("iter %r: train loss/sent=%.4f, time=%.2fs" %
-                  (ITER, train_loss / s, time.time() - start))
-            if ITER % 50 == 0:
+                  (ITER, train_loss_tot / s_tot, time.time() - start))
+            if ITER % 5 == 0:
                 self.evaluate(self.datasets_test)
             # evaluate
         # self.save_model(self, open('models/mod_temporal_torch', 'wb'))

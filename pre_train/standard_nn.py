@@ -86,12 +86,28 @@ class Standard_nn(nn.Module):
 
 
         for name in fnames:
-            data, _ = get_data2(name)
+            try:
+                f = open('../data/' + name + '.pickle', 'rb')
+                data = pickle.load(f)
+                print('caricato ' + name)
+            except:
+                f = open('../data/' + name + '.pickle', 'wb')
+                data, _ = get_data2(name)
+                pickle.dump(data, f)
+                print('scritto ' + name)
             data = Variable(torch.from_numpy(data))
             self.datasets.append(data)
 
         for name in fnames_test:
-            data, _ = get_data2(name)
+            try:
+                f = open('../data/' + name + '.pickle', 'rb')
+                data = pickle.load(f)
+                print('caricato test' + name)
+            except:
+                f = open('../data/' + name + '.pickle', 'wb')
+                data, _ = get_data2(name)
+                pickle.dump(data, f)
+                print('scritto test ' + name)
             data = Variable(torch.from_numpy(data))
             self.datasets_test.append(data)
 
@@ -99,20 +115,23 @@ class Standard_nn(nn.Module):
         self.datasets_orig_test = copy.deepcopy(self.datasets_test)
         if normalize:
             self.mu, self.std, N = self.get_normalization(self.datasets)
+            # print(self.mu, self.std)
         self.normalize(self.datasets, self.datasets_test, self.mu, self.std)
+        self.mu[:5] = 0
+        self.std[:5] = 1
 
         l = []
         l2 = []
         for data in self.datasets:
             # data2, label2 = construct_dataset(data.data.numpy(), [i for i in range(48)], [i for i in range(5, 48)], [0,1,2,3,4], 4)
-            data2, label2 = construct_dataset_function(data.data.numpy(), self.input_dimensions, self.state_dimensions, self.output_dimensions, self.history_size)
+            data2, label2 = construct_dataset_function(data.data.numpy(), self.input_dimensions, self.state_dimensions, self.output_dimensions, self.history_size, all=True, is_train=False)
             data2 = Variable(torch.FloatTensor(data2))
             label2 = Variable(torch.FloatTensor(label2))
             l.append((data2, label2))
 
         for data in self.datasets_test:
             # data2, label2 = construct_dataset(data.data.numpy(), [i for i in range(48)], [i for i in range(5, 48)], [0, 1,2,3,4], 4, all=True)
-            data2, label2 = construct_dataset_function(data.data.numpy(), self.input_dimensions, self.state_dimensions, self.output_dimensions, self.history_size, all=True)
+            data2, label2 = construct_dataset_function(data.data.numpy(), self.input_dimensions, self.state_dimensions, self.output_dimensions, self.history_size, all=True, is_train=False)
             data2 = Variable(torch.FloatTensor(data2))
             label2 = Variable(torch.FloatTensor(label2))
             l2.append((data2, label2))
@@ -147,6 +166,7 @@ class Standard_nn(nn.Module):
 
 
     def transform(self, Y, mu, std):
+        # return Y
         X = Variable(Y.data.clone())
         # print(X)
         # print(X.size(1))
@@ -158,6 +178,7 @@ class Standard_nn(nn.Module):
         return X
 
     def back_transform(self, Y, mu, std):
+        # return Y
         X = Variable(Y.data.clone())
         for i in range(X.size(1)):
             if std.data[i] > 0:
@@ -167,6 +188,7 @@ class Standard_nn(nn.Module):
         return X
 
     def transform2(self, Y, mu, std):
+        # return Y
         X = Y
         X = X - mu[:X.size(1)]
         for i in range(X.size(1)):
@@ -175,6 +197,7 @@ class Standard_nn(nn.Module):
         return X
 
     def back_transform2(self, Y, mu, std):
+        # return Y
         X = Y
 
         for i in range(X.size(1)):
@@ -190,10 +213,10 @@ class Standard_nn(nn.Module):
     def normalize(self, datasets, datasets_test, mu, std):
 
         for i in range(len(datasets)):
-            datasets[i] = self.transform(datasets[i], mu, std)
+            datasets[i][:, 5:] = self.transform(datasets[i][:, 5:], mu[5:], std[5:])
 
         for i in range(len(datasets_test)):
-            datasets_test[i] = self.transform(datasets_test[i], mu, std)
+            datasets_test[i][:, 5:] = self.transform(datasets_test[i][:, 5:], mu[5:], std[5:])
         return mu, std
 
     def cuda(self):
@@ -233,7 +256,7 @@ class Standard_nn(nn.Module):
 
                     scores = self.forward(lookup_tensor)
                     # scores2 = self.back_transform2(scores, self.mu, self.std)
-
+                    #
                     # target2 = self.back_transform2(target, self.mu, self.std)
                     output = self.loss(scores, target)
                     train_loss += output.data[0]

@@ -8,28 +8,31 @@ import pickle
 # notice, 48 uses all dimensions but the opponent sensors
 # use the first 5 dimensions as outputs (accel, brake, gear, steer, clutch)
 # output_dimensions = [0, 1, 2, 3, 4]
-output_dimensions = [0, 1, 3]#[0, 1, 2, 3, 4]
+output_dimensions = [3]#[0, 1, 2, 3, 4]
 # dimensions of the state input (all the car state but opponents)
 # state_dimensions = [i for i in range(5, 48)]
 state_dimensions = [6, 15, 16, 17] + list(range(18, 38)) + [42]
+# state_dimensions = [6,37]
 # input_dimensions = [3]+[i for i in range(5, 48)]
 input_dimensions = state_dimensions
 history_size = 2
 batch_size = 256
 cuda = True
-epochs = 500
+epochs = 50
 # todo: correct data with -1, avoid frames without change in angle
 
-dataset_names = [ 'aalborg', 'alpine', 'alpine2', 'brondehach', 'etrack2', 'cg_speedway_number1']
-dataset_names_test = ['wheel1', 'aalborg' , 'alpine', 'alpine2', 'spring', 'wheel2', 'cg_speedway_number1', 'olethros_road_1', 'brondehach', 'etrack3']
+# dataset_names = [ 'aalborg', 'alpine', 'cg_speedway_number1', 'etrack3', 'spring']
+# dataset_names = [ 'aalborg', 'alpine', 'brondehach', 'cg_speedway_number1', 'spring', 'etrack3', 'alpine2']
+dataset_names = ['etrack3', 'cg_track3','etrack4', 'etrack', 'cg_track_2', 'wheel1', 'aalborg' , 'alpine', 'alpine2', 'spring', 'cg_speedway_number1', 'olethros_road_1', 'brondehach']
+dataset_names_test = ['etrack3', 'cg_track3','etrack4', 'etrack', 'cg_track_2', 'wheel1', 'aalborg' , 'alpine', 'alpine2', 'spring', 'cg_speedway_number1', 'olethros_road_1', 'brondehach']
 dataset_names2 = [x + '_2' for x in dataset_names]
 dataset_names3 = [x + '_3' for x in dataset_names_test]
 
-construct_fun = construct_dataset_lstm
-model = myLSTM(input_dimensions = input_dimensions,output_dimensions = output_dimensions, state_dimensions=state_dimensions, batch_size = batch_size, history_size = history_size, cuda = cuda, epochs = epochs)
+# construct_fun = construct_dataset_lstm
+# model = myLSTM(input_dimensions = input_dimensions,output_dimensions = output_dimensions, state_dimensions=state_dimensions, batch_size = batch_size, history_size = history_size, cuda = cuda, epochs = epochs)
 
-# construct_fun = construct_dataset
-# model = MLP2(input_dimensions = input_dimensions,output_dimensions = output_dimensions, state_dimensions=state_dimensions, batch_size = batch_size, history_size = history_size, cuda = cuda, epochs = epochs)
+construct_fun = construct_dataset
+model = MLP2(input_dimensions = input_dimensions,output_dimensions = output_dimensions, state_dimensions=state_dimensions, batch_size = batch_size, history_size = history_size, cuda = cuda, epochs = epochs)
 # model.init_datasets(fnames=dataset_names2, fnames_test=dataset_names3, normalize=True)
 model.init_datasets(fnames=dataset_names2, fnames_test=dataset_names3, construct_dataset_function=construct_fun, normalize=True)
 
