@@ -106,7 +106,7 @@ def test_buffer_regression_1():
              b'(speedX 0.0206057)(speedY 0.000264679)(speedZ -0.000624058)' \
              b'(track 5.00273 5.18736 5.79627 7.10971 9.87425 13.5626 16.5008 20.583 26.1558 ' \
              b'33.4167 42.2603 52.3137 63.2249 17.1145 10.1787 7.03222 5.75109 5.16562 4.99744)' \
-             b'(trackPos -0.000529385)(wheelSpinVel 0 0 0 0)(z 0.355918)(focus -1 -1 -1 -1 -1)\x00'
+             b'(trackPos -0.000529385)(wheelSpinVel 0 0 0 0)(z 0.355918)(focus -1 -1 -1 -1 -1)(meta 1)\x00'
 
     s = Serializer()
     d = s.decode(buffer)

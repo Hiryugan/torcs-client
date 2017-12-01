@@ -1,0 +1,28 @@
+---
+neat_config_file: path/to/neat_config
+
+server_config_file: path/to/server_config
+
+save_path: path/to/save_path
+
+port: port_number (from 0 to 9)
+
+tracks:
+  - name: forza
+    category: road
+  - name: alpine-1
+    category: road
+  - name: michigan
+    category: oval
+
+
+
+input_model:
+  - path/to/model
+  - None
+
+output_model:
+  - Genetic
+  - Filename
+  - None
+
