@@ -32,7 +32,7 @@ class MLP2(Standard_nn):
         self.fc3 = nn.Linear(256, self.output_size)
         self.loss = nn.MSELoss()
         # self.conv1 = nn.Conv1d()
-        self.optimizer = optim.Adam(self.parameters(), lr=0.0001)
+        self.optimizer = optim.Adam(self.parameters(), lr=0.0002)
 
     def forward(self, x):
         xorig = x[:]
@@ -140,9 +140,9 @@ class MLP2(Standard_nn):
                 # for j in range(50):
                     # x = random.randint(0, len(self.datasets) - 1)
                     # i = random.randint(0, self.datasets[x][0].size(0) - self.history_size - 1)
-                    # i = random.randint(0, dataset.size(0) - self.history_size - 1)
+                    i = random.randint(0, dataset.size(0) - self.batch_size - 1)
                     #
-                    i = j*self.batch_size
+                    # i = j*self.batch_size
                     lookup_tensor = dataset[i:i+self.batch_size]
                     # target = labels[i:i+self.batch_size]
                     target = labels[i:i+self.batch_size]

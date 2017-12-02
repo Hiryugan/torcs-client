@@ -5,7 +5,7 @@ import time
 
 from pytocl.car import State as CarState
 from pytocl.driver import Driver
-
+from config_parser import Configurator, Parser
 _logger = logging.getLogger(__name__)
 
 # special messages from server:
@@ -32,6 +32,9 @@ class Client:
 
     def __init__(self, hostname='localhost', port=3001, *,
                  driver=None, serializer=None):
+
+        # self.parser = Parser(config)
+
         self.hostaddr = (hostname, port)
         self.driver = driver or Driver()
         self.serializer = serializer or Serializer()

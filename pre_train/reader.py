@@ -64,6 +64,7 @@ def construct_dataset(dataset, input_indices, state_indices, output_indices, his
     # id = input_indices.size(0)
     sd = len(state_indices)
     # sd = state_indices.size(0)
+    print('a')
     od = len(output_indices)
     # od = output_indices.size(0)
     difficult = 0
@@ -73,29 +74,33 @@ def construct_dataset(dataset, input_indices, state_indices, output_indices, his
         train = np.zeros((int((dataset.shape[0] / history_size)) ,int(id*(history_size-1) + sd) ))
     labels = np.zeros((train.shape[0], od))
     s = 0
-    train2 = np.zeros((1, int(id*(history_size-1) + sd) ))
-    labels2 = np.zeros((1, od) )
+    train2 = train.copy()
+    # train2 = np.zeros((1, int(id*(history_size-1) + sd) ))
+    labels2 = labels.copy()
+    idx = 0
+    # labels2 = np.zeros((1, od) )
     for i in range(train.shape[0]):
         rnd = random.randint(0, dataset.shape[0] - history_size - 1)
         if all:
             rnd = i
         # rnd = i
         countsteer = 0
-        # for j in range(0, history_size - 1):
-        # if np.abs(dataset[rnd + history_size-1, 1]) > 0.5 and is_train==True:
-        #     countsteer += 1
-        #     difficult += 1
-        #
-        # p = random.random()
-        #
-        # if p > 0.2 or countsteer > 0:
-        #     # i = i - 1
-        #     s += 1
-        #     labels2 = np.vstack((labels2, dataset[rnd, output_indices]))
-        #     train2 = np.vstack((train2, np.zeros((1, int(id*(history_size-1) + sd)))))
-        #     train2[-1, :sd] = dataset[rnd, state_indices]
-        #     train2[-1, sd:] = dataset[rnd:rnd+history_size-1, input_indices].reshape(1, -1)
+        if np.abs(dataset[rnd + history_size-1, 3]) > 0.01 and is_train==True:
+            countsteer += 1
+            difficult += 1
 
+        p = random.random()
+        if p > 0.5 or countsteer > 0:
+            # i = i - 1
+            s += 1
+            # labels2 = np.vstack((labels2, dataset[rnd, output_indices]))
+            # train2 = np.vstack((train2, np.zeros((1, int(id*(history_size-1) + sd)))))
+            # train2[-1, :sd] = dataset[rnd, state_indices]
+            train2[idx, :sd] = dataset[rnd, state_indices]
+            train2[idx, sd:] = dataset[rnd:rnd+history_size-1, input_indices].reshape(1, -1)
+            labels2[idx, :] = dataset[rnd, output_indices]
+            # train2[-1, sd:] = dataset[rnd:rnd+history_size-1, input_indices].reshape(1, -1)
+            idx += 1
         labels[i, :] = dataset[rnd, output_indices]
         train[i, :sd] = dataset[rnd, state_indices]
         train[i, sd:] = dataset[rnd:rnd+history_size-1, input_indices].reshape(1, -1)
@@ -106,7 +111,7 @@ def construct_dataset(dataset, input_indices, state_indices, output_indices, his
     print(train.shape, labels.shape, s, difficult)
     print(train2.shape, labels2.shape, s, difficult)
     if is_train:
-        return train2, labels2
+        return train2[:idx], labels2[:idx]
     else:
         return train, labels
 

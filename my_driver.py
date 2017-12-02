@@ -17,6 +17,7 @@ from pre_train.mlp_torch_2 import MLP#, transform, back_transform, load_model
 # from .pre_train.mlp_torch import MLP, transform, back_transform
 _logger = logging.getLogger(__name__)
 
+# class MyDriver(Driver):
 class MyDriver:
     """
     Driving logic.
@@ -49,8 +50,8 @@ class MyDriver:
         # for i in [0,3]:
         #     self.models[i] = pickle.load(open('pre_train/models/mod_temporal_torch' + '_' + str(i),'rb'))
         self.model3 = pickle.load(open('pre_train/models/mod_temporal_torch_3','rb'))
-        self.model1 = pickle.load(open('pre_train/models/mod_temporal_torch_1','rb'))
-        self.model0 = pickle.load(open('pre_train/models/mod_temporal_torch_0','rb'))
+        # self.model1 = pickle.load(open('pre_train/models/mod_temporal_torch_1','rb'))
+        # self.model0 = pickle.load(open('pre_train/models/mod_temporal_torch_0','rb'))
         # self.model = load_model(open('pre_train/models/mod_temporal_torch','rb'))
         # self.model = load_model(open('pre_train/models/mod_temporal_torch','rb'))
         # self.model = load_model(open('pre_train/models/mod_temporal_torch','rb'))
@@ -59,8 +60,8 @@ class MyDriver:
         # t = load_model(open('pre_train/models/ustd_torch', 'rb'))
         self.mu = t[0]
         self.std = t[1]
-        print(self.mu)
-        print(self.std)
+        # print(self.mu)
+        # print(self.std)
         # number of previous states used for the prediction
         # self.history = 20
         self.past_sensors = []
@@ -73,7 +74,7 @@ class MyDriver:
         # self.input_dimensions = [3]+[i for i in range(5, 48)]
 
         if len(lst) > 3:
-            self.history = 4#lst[3]
+            self.history = lst[3]
         self.use_lstm = False
         self.use_lstm3 = False
         self.hn = Variable(torch.zeros(1, 256))
@@ -176,8 +177,8 @@ class MyDriver:
         #     _logger.info('im out')
             # t_features.data[0, 18:37] = 0
         outCommand = Command()
-        # if carstate.distances_from_edge[0] == -1:
-        #     outCommand.meta = 1
+        if carstate.distances_from_edge[0] == -1:
+            outCommand.meta = 1
         if len(self.past_command) >= self.history:
 
             feat2 = t_features.data
@@ -201,15 +202,16 @@ class MyDriver:
             #
             # t_prediction1 = self.model1(feat2)
 
-            prediction = self.model1.back_transform(t_prediction,
+            prediction = self.model3.back_transform(t_prediction,
                                                      self.mu[torch.LongTensor([3])],
                                                      self.std[torch.LongTensor([3])])
 
+            # print(self.mu[torch.LongTensor([3])], self.std[torch.LongTensor([3])])
             # self.output_dimensions2 = [1]
             # prediction1 = self.model1.back_transform(t_prediction1,
             #                                        self.mu[torch.LongTensor(self.output_dimensions2)],
             #                                        self.std[torch.LongTensor(self.output_dimensions2)])
-            #
+
             # prediction0 = self.model0.back_transform(t_prediction0,
             #                                        self.mu[torch.LongTensor([0])],
             #                                        self.std[torch.LongTensor([0])])
@@ -282,19 +284,19 @@ class MyDriver:
             # _logger.info(carstate)
             # _logger.info(self.it)
             # t_features[0, :5] = prediction[:5]
-            if self.input_dimensions != self.state_dimensions:
-                t_features_numpy = np.hstack((np.zeros((1, O)), t_features.data.numpy()))
-                t_features_numpy[0, :O] = t_prediction.data.numpy()[:O]
-            else:
-                t_features_numpy = t_features.data.numpy()
-            self.past_command.append(t_features_numpy[0, :])
+        if self.input_dimensions != self.state_dimensions:
+            t_features_numpy = np.hstack((np.zeros((1, O)), t_features.data.numpy()))
+            t_features_numpy[0, :O] = t_prediction.data.numpy()[:O]
         else:
-            if self.input_dimensions != self.state_dimensions:
-                numpy_feat = np.hstack((np.zeros((1, O)), t_features.data.numpy()))
-                numpy_feat[0, :O] = self.past_command[-1][:O]
-            else:
-                numpy_feat = t_features.data.numpy()
-            self.past_command.append(numpy_feat[0, :])
+            t_features_numpy = t_features.data.numpy()
+        self.past_command.append(t_features_numpy[0, :])
+        # else:
+        #     if self.input_dimensions != self.state_dimensions:
+        #         numpy_feat = np.hstack((np.zeros((1, O)), t_features.data.numpy()))
+        #         numpy_feat[0, :O] = self.past_command[-1][:O]
+        #     else:
+        #         numpy_feat = t_features.data.numpy()
+        #     self.past_command.append(numpy_feat[0, :])
 
 
         # if self.data_logger:
@@ -303,7 +305,7 @@ class MyDriver:
         # print(len(self.past_command))
         if len(self.past_command) > self.history:
             self.past_command = self.past_command[1:]
-        # print(time.time() - start)
+        print(time.time() - start, self.it)
         return outCommand
 
     def accelerate(self, carstate, target_speed, command):

@@ -15,14 +15,14 @@ state_dimensions = [6, 15, 16, 17] + list(range(18, 38)) + [42]
 # state_dimensions = [6,37]
 # input_dimensions = [3]+[i for i in range(5, 48)]
 input_dimensions = state_dimensions
-history_size = 2
+history_size = 4
 batch_size = 256
 cuda = True
-epochs = 50
+epochs = 100
 # todo: correct data with -1, avoid frames without change in angle
 
 # dataset_names = [ 'aalborg', 'alpine', 'cg_speedway_number1', 'etrack3', 'spring']
-# dataset_names = [ 'aalborg', 'alpine', 'brondehach', 'cg_speedway_number1', 'spring', 'etrack3', 'alpine2']
+# dataset_names = [ 'aalborg', 'alpine', 'cg_speedway_number1', 'spring']
 dataset_names = ['etrack3', 'cg_track3','etrack4', 'etrack', 'cg_track_2', 'wheel1', 'aalborg' , 'alpine', 'alpine2', 'spring', 'cg_speedway_number1', 'olethros_road_1', 'brondehach']
 dataset_names_test = ['etrack3', 'cg_track3','etrack4', 'etrack', 'cg_track_2', 'wheel1', 'aalborg' , 'alpine', 'alpine2', 'spring', 'cg_speedway_number1', 'olethros_road_1', 'brondehach']
 dataset_names2 = [x + '_2' for x in dataset_names]

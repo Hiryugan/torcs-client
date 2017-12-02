@@ -25,14 +25,14 @@ def main(driver):
     )
     parser.add_argument(
         '-с',
+        '--conf',
         help='Configuration file path.',
-        type=str,
         default='../config/config_template.yaml'
     )
     parser.add_argument('-v', help='Debug log level.', action='store_true')
     args = parser.parse_args()
-    config_file = args.c
-    del args.c
+    config_file = args.conf
+    del args.conf
     # switch log level:
     if args.v:
         level = logging.DEBUG
