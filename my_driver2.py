@@ -146,7 +146,7 @@ class MyDriver(Driver):
             self.steer(carstate, (action[0] * 2) - 1, outCommand)
 
             if self.it > 10:
-               self.accelerate(carstate, 50, outCommand)
+                self.accelerate(carstate, 50, outCommand)
                 outCommand.steering = prediction.data[0]
 
                 outCommand.clutch = 0  # prediction.data[4]

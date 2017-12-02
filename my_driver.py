@@ -277,7 +277,8 @@ class MyDriver:
             t_prediction = self.model3.transform(prediction.view(1, -1),
                                               self.mu[torch.LongTensor(self.output_dimensions)],
                                               self.std[torch.LongTensor(self.output_dimensions)])[0]
-
+            [None, None, model1]
+            [None, None, True]
             # _logger.info(prediction)
             # if prediction.data[2] < -2:
             #     print("we2")
