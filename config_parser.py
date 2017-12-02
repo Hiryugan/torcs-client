@@ -9,13 +9,13 @@ class Parser:
         self.parse_file = parse_file
         with open(self.parse_file, 'r') as f:
             config = yaml.load(f, Loader=yaml.CLoader)
-            self.input_model = config['input_model']
             self.neat_config_file = config['neat_config_file']
             self.output_model = config['output_model']
             self.port = config['port']
             self.save_path = config['save_path']
             self.server_config_file = config['server_config_file']
             self.tracks = config['tracks']
+            self.fitness_function_file =config['fitness_function_file']
         f.close()
 
 class Configurator:
@@ -52,26 +52,12 @@ class Configurator:
                 if exc.errno != errno.EEXIST:
                     raise
 
-
-"""Application entry point."""
-import argparse
-
-
-def main():
-    """Main entry point of application."""
-    parser = argparse.ArgumentParser(
-        description='Configurator for torcs server.'
-    )
-    parser.add_argument(
-        '-c',
-        help='Configuration file path.'
-    )
-    args = parser.parse_args()
-    config_file = args.c
-    configurator = Configurator(config_file)
-    configurator.configure_server()
-    del args.c
-
-if __name__ == '__main__':
-    main()
+    def configure_client(self):
+        dirname = os.path.dirname(self.save_path)
+        if not os.path.exists(dirname):
+            try:
+                os.makedirs(dirname)
+            except OSError as exc:  # Guard against race condition
+                if exc.errno != errno.EEXIST:
+                    raise
 
