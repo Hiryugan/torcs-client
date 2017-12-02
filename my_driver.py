@@ -40,7 +40,6 @@ class MyDriver:
             ProportionalController(3.7),
         )
         self.data_logger = DataLogWriter() if logdata else None
-
         lst = pickle.load(open('pre_train/models/dimensions', 'rb'))
         self.output_dimensions = [3]#lst[0]
         self.state_dimensions = lst[1]
@@ -157,8 +156,16 @@ class MyDriver:
         # lot of inputs. But it will get the car (if not disturbed by other
         # drivers) successfully driven along the race track.
         # """
+        if self.net == None:
+            outCommand = Command()
+            outCommand.accelerator = 1
+            outCommand.gear = 1
+            outCommand.steering = 0
+            outCommand.brake = 0
+            outCommand.clutch = 0
+            return outCommand
+
         start = time.time()
-        command = Command()
         # self.steer(carstate, 0.0, command)
         self.it += 1
         O = len(self.output_dimensions)
@@ -277,8 +284,7 @@ class MyDriver:
             t_prediction = self.model3.transform(prediction.view(1, -1),
                                               self.mu[torch.LongTensor(self.output_dimensions)],
                                               self.std[torch.LongTensor(self.output_dimensions)])[0]
-            [None, None, model1]
-            [None, None, True]
+
             # _logger.info(prediction)
             # if prediction.data[2] < -2:
             #     print("we2")
@@ -346,7 +352,12 @@ class MyDriver:
             carstate.current_lap_time
         )
 
+    def set_net(self, net):
+        self.net = net
+
+
+
     def on_restart(self):
         print("restarted")
+        self.it = 0
         # self.__init__(logdata=False)
-        pass

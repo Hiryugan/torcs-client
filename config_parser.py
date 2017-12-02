@@ -15,7 +15,7 @@ class Parser:
             self.save_path = config['save_path']
             self.server_config_file = config['server_config_file']
             self.tracks = config['tracks']
-            self.fitness_function_file =config['fitness_function_file']
+            self.fitness_function_file = config['fitness_function_file']
         f.close()
 
 class Configurator:
@@ -23,7 +23,7 @@ class Configurator:
         self.parser = Parser(file)
 
     def configure_server(self):
-        file = '../example_torcs_config.xml'
+        file = self.parser.server_config_file
         xml_tree = etree.parse(file)
         tracks = xml_tree.xpath("//section[@name='Tracks']")[0]
         attnum_tracks = tracks.xpath("attnum")[0]
@@ -53,7 +53,7 @@ class Configurator:
                     raise
 
     def configure_client(self):
-        dirname = os.path.dirname(self.save_path)
+        dirname = os.path.dirname(self.parser.save_path)
         if not os.path.exists(dirname):
             try:
                 os.makedirs(dirname)
