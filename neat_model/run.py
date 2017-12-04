@@ -139,7 +139,7 @@ def run():
     pop.add_reporter(neat.StdOutReporter(True))
 
     pe = neat.ParallelEvaluator(1, eval_genome_func)
-    winner = pop.run(pe.evaluate, 5)
+    winner = pop.run(pe.evaluate, 100)
 
     # Save the winner.
     with open(config_parser.save_path + '_winner.pkl', 'wb') as f:

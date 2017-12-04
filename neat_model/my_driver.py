@@ -48,6 +48,7 @@ class MyDriver(Driver):
         #     print(self.parser.output_model[i])
         #     if self.parser.output_model[i]['name'] != 'None':
             #     self.models[self.i2o[i]] = pickle.load(open(self.parser.output_model[i]['name'], 'rb'))
+
             if self.parser.output_model[i]['used'] == True:
                 self.change_outputs[self.i2o[i]] = True
             else:
@@ -146,7 +147,7 @@ class MyDriver(Driver):
                                                                 model.std[torch.LongTensor([i])])
                         # reshape to array
                         prediction = prediction[0]
-                        predictions[key] = prediction.data.numpy()
+                        predictions[key] = prediction.data.numpy()[0]
 
                         # if self.parser.output_model[self.i2o[i]]['usage'] == True:
                         #     features = np.hstack((features, prediction.data.numpy()))
@@ -220,23 +221,27 @@ class MyDriver(Driver):
                 idx += 1
             else:
                 if 'accel' in self.models:
-                    outCommand.accelerator = predictions['accel']
-                else:
-                    outCommand.accelerator = genetic_prediction[idx]
-                    idx += 1
+                    if not self.change_outputs['accel']:
+                        outCommand.accelerator = predictions['accel']
+                    else:
+                        outCommand.accelerator = genetic_prediction[idx]
+                        idx += 1
                 if 'brake' in self.models:
-                    outCommand.brake = predictions['brake']
-                else:
-                    outCommand.brake = genetic_prediction[idx]
-                    idx += 1
+                    if not self.change_outputs['brake']:
+                        outCommand.brake = predictions['brake']
+
+                    else:
+                        outCommand.brake = genetic_prediction[idx]
+                        idx += 1
             if 'steer' in self.models:
-                outCommand.steer = predictions['steer']
-            else:
-                outCommand.steer = genetic_prediction[idx]
-                idx += 1
+                if not self.change_outputs['steer']:
+                    outCommand.steering = predictions['steer']
+                else:
+                    outCommand.steering = genetic_prediction[idx]
+                    idx += 1
 
             if self.parser.avoid_go_out == True:
-                if carstate.distance_from_center < -0.7 or carstate.distance_from_center > 0.7:
+                if carstate.distance_from_center < -0.8 or carstate.distance_from_center > 0.8:
                     self.steer(carstate, 0.0, outCommand)
         else:
 
@@ -246,6 +251,8 @@ class MyDriver(Driver):
             outCommand.brake = 0
             outCommand.clutch = 0
 
+        # self.accelerate(carstate, 50, outCommand)
+        # print(outCommand)
         self.it += 1
 
         return outCommand
@@ -265,3 +272,33 @@ class MyDriver(Driver):
             steering_error,
             carstate.current_lap_time
         )
+
+    def accelerate(self, carstate, target_speed, command):
+        # compensate engine deceleration, but invisible to controller to
+        # prevent braking:
+        speed_error = 1.0025 * target_speed * MPS_PER_KMH - carstate.speed_x
+        acceleration = self.acceleration_ctrl.control(
+            speed_error,
+            carstate.current_lap_time
+        )
+
+        acceleration = math.pow(acceleration, 3)
+        # acceleration = command.accelerator
+        if acceleration > 0:
+
+            if abs(carstate.distance_from_center) >= 1:
+                acceleration = min(0.4, acceleration)
+
+            command.accelerator = min(acceleration, 1)
+            #
+            if carstate.rpm > 8000:
+                command.gear = carstate.gear + 1
+
+        # else:
+        #     command.brake = min(-acceleration, 1)
+
+        if carstate.rpm < 2500:
+            command.gear = carstate.gear - 1
+
+        if not command.gear:
+            command.gear = carstate.gear or 1

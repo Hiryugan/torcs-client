@@ -5,6 +5,13 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 torch.manual_seed(1)
+import pickle
+
+mod = pickle.load(open('models/mod_temporal_torch_3_nicer', 'rb'))
+mod = pickle.load(open('models/mod_temporal_torch_3_nicer', 'rb'))
+mod2 = mod.cpu()
+torch.save(mod2, 'models/mod_temporal_torch_3_nicer_cpu')
+# mod = torch.load('models/mod_temporal_torch_3_nice_cpu', lambda storage, location: storage)
 
 lstm = nn.LSTM(3, 3)  # Input dim is 3, output dim is 3
 inputs = [autograd.Variable(torch.FloatTensor([1, 2*i, 3**i]))
