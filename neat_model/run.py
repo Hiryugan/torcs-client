@@ -4,6 +4,7 @@ from pytocl.main import main
 from pytocl.driver import Driver
 from pytocl.protocol import Client
 import argparse
+import signal
 import logging
 import functools
 
@@ -31,18 +32,26 @@ models = None
 def eval_genome(genome, config, fitness_save_path):
     # net=neat.ctrnn.CTRNN.create(genome, config, 10)
     net=neat.nn.FeedForwardNetwork.create(genome, config)
-
+    def signal_handler(signal, frame):
+        print("Timeout reached!")
+        exit(42)
     global driver
     global first
     global argsg
     global parserg
     global models
     driver = MyDriver(parserg, models=models, net=net)
+    print('Driver is created')
     # if first == 0:
     #     driver = MyDriver(parserg)
     #     driver.set_net(net)
     client = Client(parserg, driver=driver, **argsg.__dict__)
+    print('Client is created')
+    signal.signal(signal.SIGABRT, signal_handler)
+    signal.alarm(150)
     client.run()
+    signal.alarm(0)
+    print('Client has finished running')
     #     first = 1
     # else:
     #     driver.set_net(net)
@@ -87,6 +96,12 @@ def run():
         help='Configuration file path.',
         default='../config/config_template.yaml'
     )
+    # parser.add_argument(
+    #     '-r',
+    #     '--rel',
+    #     help='Checkpoint file path.',
+    #     default='None'
+    # )
     parser.add_argument('-v', help='Debug log level.', action='store_true')
     args = parser.parse_args()
     config_file = args.conf
@@ -125,12 +140,26 @@ def run():
 
     # pop = Checkpointer().restore_checkpoint("neat-checkpoint-33")
     eval_genome_func = functools.partial(eval_genome, fitness_save_path=os.path.join(config_parser.save_path, 'fitness_value.txt'))
-
-    # config_path = os.path.join(local_dir, neat_config_path)
-    config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
-                         neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                         config_parser.neat_config_file)
-    pop = neat.Population(config)
+    from os import listdir
+    from os.path import isfile, join
+    filenames = [f for f in listdir(config_parser.save_path) if isfile(join(config_parser.save_path, f))]
+    maxx = 0
+    for f in filenames:
+        split = f.split('_')
+        if len(split) == 2:
+            if split[0] == 'checkpoint':
+                num = int(split[1])
+                if num > maxx:
+                    maxx = num
+    if maxx > 0:
+        pop = Checkpointer().restore_checkpoint(os.path.join(config_parser.save_path, 'checkpoint_' + str(maxx)))
+        print('reloaded checkpoint ', maxx)
+    else:
+        # config_path = os.path.join(local_dir, neat_config_path)
+        config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                             neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                             config_parser.neat_config_file)
+        pop = neat.Population(config)
     stats = neat.StatisticsReporter()
     check = Checkpointer(2,time_interval_seconds=None,filename_prefix=os.path.join(config_parser.save_path, 'checkpoint_'))
 

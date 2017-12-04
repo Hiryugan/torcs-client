@@ -24,7 +24,7 @@ def main():
     configurator.configure_client()
 
     parser = configurator.parser
-    script = 'torcs -r {} & python pytocl/main.py --conf {} -p {}'\
+    script = 'torcs -r {} & python pytocl/run.py --conf {} -p {}'\
         .format(parser.server_config_file,
                 parser.port + 1,
                 config_file)

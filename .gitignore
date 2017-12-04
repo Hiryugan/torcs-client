@@ -5,3 +5,4 @@ output/
 pre_train/models/
 data/
 .idea/
+neat_results/

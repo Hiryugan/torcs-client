@@ -221,18 +221,18 @@ class MyDriver(Driver):
                 idx += 1
             else:
                 if 'accel' in self.models:
-                    if not self.change_outputs['accel']:
-                        outCommand.accelerator = predictions['accel']
-                    else:
-                        outCommand.accelerator = genetic_prediction[idx]
-                        idx += 1
+                    # if not self.change_outputs['accel']:
+                    outCommand.accelerator = predictions['accel']
+                else:
+                    outCommand.accelerator = genetic_prediction[idx]
+                    idx += 1
                 if 'brake' in self.models:
-                    if not self.change_outputs['brake']:
-                        outCommand.brake = predictions['brake']
+                    # if not self.change_outputs['brake']:
+                    outCommand.brake = predictions['brake']
 
-                    else:
-                        outCommand.brake = genetic_prediction[idx]
-                        idx += 1
+                else:
+                    outCommand.brake = genetic_prediction[idx]
+                    idx += 1
             if 'steer' in self.models:
                 if not self.change_outputs['steer']:
                     outCommand.steering = predictions['steer']

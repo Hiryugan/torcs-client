@@ -13,7 +13,8 @@ def run_command(command):
         if output:
             print(output.strip())
     rc = process.poll()
-    return rc
+    pid = process.pid
+    return rc, pid
 
 def main():
     """Main entry point of application."""
@@ -39,18 +40,19 @@ def main():
 
     torcs_args = shlex.split(torcs_script)
     torcs_proc = subprocess.Popen(torcs_args, stdout=subprocess.PIPE)
-
-    python_proc = run_command(python_script)
+    rc = 42
+    while rc == 42:
+        rc, python_pid = run_command(python_script)
+        process = psutil.Process(python_pid)
+        for pr in process.children(recursive=True):
+            pr.kill()
+        process.kill()
 
     process = psutil.Process(torcs_proc.pid)
     for pr in process.children(recursive=True):
         pr.kill()
     process.kill()
 
-    process = psutil.Process(python_proc.pid)
-    for pr in process.children(recursive=True):
-        pr.kill()
-    process.kill()
 
 if __name__ == '__main__':
     main()
