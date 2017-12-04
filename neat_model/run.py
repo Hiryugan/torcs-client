@@ -161,7 +161,7 @@ def run():
                              config_parser.neat_config_file)
         pop = neat.Population(config)
     stats = neat.StatisticsReporter()
-    check = Checkpointer(2,time_interval_seconds=None,filename_prefix=os.path.join(config_parser.save_path, 'checkpoint_'))
+    check = Checkpointer(1,time_interval_seconds=None,filename_prefix=os.path.join(config_parser.save_path, 'checkpoint_'))
 
     pop.add_reporter(stats)
     pop.add_reporter(check)
