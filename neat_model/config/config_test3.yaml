@@ -1,0 +1,39 @@
+---
+
+neat_config_file: config/config-ctrnn3
+
+server_config_file: /home/hiryugan/Documents/torcs-server/config/example_torcs_config_test3.xml
+
+save_path: neat_results/exp3/
+
+port: 2
+
+fitness_function_file: fitness_functions/fit2.py
+
+
+tracks:
+  - name: forza
+    category: road
+
+  - name: alpine-1
+    category: road
+
+  - name: michigan
+    category: oval
+
+output_model:
+  - feature: accel
+    name: None
+    used: False
+
+  - feature: brake
+    name: None
+    used: False
+
+  - feature: steer
+    name: pre_train/models/mod_temporal_torch_3_nice
+    used: True
+
+merge_accel_brake: True
+
+avoid_go_out: False

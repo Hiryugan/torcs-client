@@ -8,7 +8,7 @@ import pickle
 # notice, 48 uses all dimensions but the opponent sensors
 # use the first 5 dimensions as outputs (accel, brake, gear, steer, clutch)
 # output_dimensions = [0, 1, 2, 3, 4]
-output_dimensions = [3]#[0, 1, 2, 3, 4]
+output_dimensions = [1]#[0, 1, 2, 3, 4]
 # dimensions of the state input (all the car state but opponents)
 # state_dimensions = [i for i in range(5, 48)]
 state_dimensions = [6, 15, 16, 17] + list(range(18, 38)) + [42]
@@ -23,7 +23,7 @@ epochs = 100
 
 # dataset_names = [ 'aalborg', 'alpine', 'cg_speedway_number1', 'etrack3', 'spring']
 # dataset_names = [ 'aalborg', 'alpine', 'cg_speedway_number1', 'spring']
-dataset_names = ['etrack3', 'cg_track3','etrack4', 'etrack', 'cg_track_2', 'wheel1', 'aalborg' , 'alpine', 'alpine2', 'spring', 'cg_speedway_number1', 'olethros_road_1', 'brondehach']
+dataset_names = ['etrack3', 'cg_track3','etrack4', 'etrack', 'cg_track_2', 'wheel1' , 'alpine', 'alpine2', 'aalborg', 'spring', 'cg_speedway_number1', 'olethros_road_1', 'brondehach']
 dataset_names_test = ['etrack3', 'cg_track3','etrack4', 'etrack', 'cg_track_2', 'wheel1', 'aalborg' , 'alpine', 'alpine2', 'spring', 'cg_speedway_number1', 'olethros_road_1', 'brondehach']
 dataset_names2 = [x + '_2' for x in dataset_names]
 dataset_names3 = [x + '_3' for x in dataset_names_test]

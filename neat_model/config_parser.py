@@ -16,6 +16,8 @@ class Parser:
             self.server_config_file = config['server_config_file']
             self.tracks = config['tracks']
             self.fitness_function_file = config['fitness_function_file']
+            self.merge_accel_brake = config['merge_accel_brake']
+            self.avoid_go_out = config['avoid_go_out']
         f.close()
 
 class Configurator:
@@ -23,7 +25,7 @@ class Configurator:
         self.parser = Parser(file)
 
     def configure_server(self):
-        file = self.parser.server_config_file
+        file = '/home/hiryugan/Documents/torcs-server/example_torcs_config.xml'
         xml_tree = etree.parse(file)
         tracks = xml_tree.xpath("//section[@name='Tracks']")[0]
         attnum_tracks = tracks.xpath("attnum")[0]
@@ -47,10 +49,10 @@ class Configurator:
         if not os.path.exists(dirname):
             try:
                 os.makedirs(dirname)
-                xml_tree.write(server_config_file, pretty_print=True)
             except OSError as exc: # Guard against race condition
                 if exc.errno != errno.EEXIST:
-                    raise
+                   raise
+        xml_tree.write(server_config_file, pretty_print=True)
 
     def configure_client(self):
         dirname = os.path.dirname(self.parser.save_path)

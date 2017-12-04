@@ -5,6 +5,7 @@ from pytocl.driver import Driver
 from pytocl.protocol import Client
 import argparse
 import logging
+import functools
 
 # from __future__ import print_function
 from neat.checkpoint import Checkpointer
@@ -23,13 +24,28 @@ import subprocess
 import neat
 driver = None
 fitness_path = None
-
+first = 0
+argsg = None
+parserg = None
+models = None
 def eval_genome(genome, config, fitness_save_path):
-    net=neat.ctrnn.CTRNN.create(genome, config, 10)
+    # net=neat.ctrnn.CTRNN.create(genome, config, 10)
+    net=neat.nn.FeedForwardNetwork.create(genome, config)
 
     global driver
-    # main(MyDriver(net=net))
-    driver.set_net(net)
+    global first
+    global argsg
+    global parserg
+    global models
+    driver = MyDriver(parserg, models=models, net=net)
+    # if first == 0:
+    #     driver = MyDriver(parserg)
+    #     driver.set_net(net)
+    client = Client(parserg, driver=driver, **argsg.__dict__)
+    client.run()
+    #     first = 1
+    # else:
+    #     driver.set_net(net)
 
     with open(fitness_save_path,'r') as f:
         fitt=f.read()
@@ -43,6 +59,9 @@ def eval_genome(genome, config, fitness_save_path):
 #     for genome_id, genome in genomes:
 #         genome.fitness = eval_genome(genome, config)
 #
+
+    # def eval_genome_func(genome, conf, fitness_save_path=os.path.join(config_parser.save_path, 'fitness_value.txt')):
+    #     eval_genome(genome, conf, fitness_save_path)
 
 def run():
 
@@ -88,14 +107,24 @@ def run():
     # Load the config file, which is assumed to live in
     # the same directory as this script.
     global driver
-    driver = MyDriver(config_parser)
+    global argsg
+    global parserg
+    parserg = config_parser
+    argsg = args
+    # net = neat.ctrnn.CTRNN.create(genome, config, 10)
+    # driver = MyDriver(config_parser)
+    #
     # main(driver)
-    client = Client(driver=driver, **args.__dict__)
-    client.run()
+    global models
+    i2o = {0: 'accel', 1: 'brake', 2: 'steer'}
+    models = {}
+    for i in range(len(config_parser.output_model)):
+        # print(self.parser.output_model[i])
+        if config_parser.output_model[i]['name'] != 'None':
+            models[i2o[i]] = pickle.load(open(config_parser.output_model[i]['name'], 'rb'))
 
     # pop = Checkpointer().restore_checkpoint("neat-checkpoint-33")
-
-    eval_genome_func = eval_genome(fitness_save_path=os.path.join(config_parser.save_path, 'fitness_value.txt'))
+    eval_genome_func = functools.partial(eval_genome, fitness_save_path=os.path.join(config_parser.save_path, 'fitness_value.txt'))
 
     # config_path = os.path.join(local_dir, neat_config_path)
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
@@ -103,13 +132,14 @@ def run():
                          config_parser.neat_config_file)
     pop = neat.Population(config)
     stats = neat.StatisticsReporter()
-    check=Checkpointer(2,time_interval_seconds=None)
+    check = Checkpointer(2,time_interval_seconds=None,filename_prefix=os.path.join(config_parser.save_path, 'checkpoint_'))
+
     pop.add_reporter(stats)
     pop.add_reporter(check)
     pop.add_reporter(neat.StdOutReporter(True))
 
     pe = neat.ParallelEvaluator(1, eval_genome_func)
-    winner = pop.run(pe.evaluate, 2)
+    winner = pop.run(pe.evaluate, 5)
 
     # Save the winner.
     with open(config_parser.save_path + '_winner.pkl', 'wb') as f:

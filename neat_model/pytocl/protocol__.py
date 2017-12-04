@@ -77,7 +77,8 @@ class Client:
     def run(self):
         """Enters cyclic execution of the client network interface."""
         while True:
-            if self.state is State.STOPPED or self.state is State.RESTARTED:
+            if self.state is State.STOPPED:
+            # if self.state is State.STOPPED or self.state is State.RESTARTED:
                 _logger.debug('Starting cyclic execution.')
 
                 self.state = State.STARTING
@@ -97,13 +98,15 @@ class Client:
             while self.state is State.RUNNING:
                 self._process_server_msg()
 
-            if self.state is not State.RESTARTED:
+            # if self.state is not State.RESTARTED:
+            if self.state is State.RESTARTED:
                 break
 
                 # TODO: save files
 
         _logger.info('Client stopped.')
         self.state = State.STOPPED
+
     def stop(self):
         """Exits cyclic client execution (asynchronously)."""
         if self.state is State.RUNNING:

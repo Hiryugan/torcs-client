@@ -3,6 +3,9 @@ import logging
 import socket
 import time
 import pickle
+import sys
+import os
+import importlib
 from pytocl.car import State as CarState
 from pytocl.driver import Driver
 from config_parser import Configurator, Parser
@@ -17,6 +20,14 @@ MSG_RESTART = b'***restart***'
 TO_SOCKET_SEC = 1
 TO_SOCKET_MSEC = TO_SOCKET_SEC * 1000
 
+def import_func(fitness_file_path):
+    sys.path.append(os.path.dirname(fitness_file_path))
+    p = os.path.basename(fitness_file_path).split('.')[0]
+    imported = importlib.__import__(p, globals(), locals(), ['fitness', 'fitness_end'], 0)
+    fitness_func = imported.fitness
+    fitness_end_func = imported.fitness_end
+    return fitness_func, fitness_end_func
+
 
 class Client:
     """Client for TORCS racing car simulation with SCRC network server.
@@ -30,17 +41,17 @@ class Client:
         socket (socket): UDP socket to server.
     """
 
-    def __init__(self, config_path, hostname='localhost', port=3001, *,
+    def __init__(self, parser, hostname='localhost', port=3001, *,
                  driver=None, serializer=None, fitness_file=None):
 
-        self.parser = Parser(config_path)
+        self.parser = parser
 
         self.hostaddr = (hostname, port)
         self.driver = driver or Driver()
         self.serializer = serializer or Serializer()
         self.state = State.STOPPED
         self.socket = None
-        self.datafile =fitness_file
+        self.datafile = os.path.join(parser.save_path, 'fitness_value.txt')
         _logger.debug('Initializing {}.'.format(self))
         self.crashed=False
         self.stuck=False
@@ -63,7 +74,8 @@ class Client:
     def run(self):
         """Enters cyclic execution of the client network interface."""
         while True:
-            if self.state is State.STOPPED or self.state is State.RESTARTED:
+            if self.state is State.STOPPED:
+                # if self.state is State.STOPPED or self.state is State.RESTARTED:
                 _logger.debug('Starting cyclic execution.')
 
                 self.state = State.STARTING
@@ -83,9 +95,9 @@ class Client:
             while self.state is State.RUNNING:
                 self._process_server_msg()
 
-            if self.state is not State.RESTARTED:
+                # if self.state is not State.RESTARTED:
+            if self.state is State.RESTARTED:
                 break
-
                 # TODO: save files
 
         _logger.info('Client stopped.')
@@ -181,49 +193,53 @@ class Client:
 
                 command = self.driver.drive(carstate)
 
-
-                if carstate.current_lap_time>5:
+                self.crashed = False
+                self.stuck = False
+                if carstate.current_lap_time > 1:
 
                     if carstate.distance_from_center < -0.9 or carstate.distance_from_center > 0.9:
                         self.crashed = True
-                    if (carstate.speed_x < 2 and carstate.current_lap_time > 6):
-                        self.stuck = True
+                if carstate.speed_x < 5 and carstate.current_lap_time > 3:
+                    self.stuck = True
 
                 self.timespend = carstate.current_lap_time
+                # import random
+                # self.fitness = random.random()
+                print('FITNEEEESSSSS ---> ', self.count, '  ', self.fitness)
 
-
-
-
-                if self.crashed :
+                if self.crashed:
 
                     with open(self.datafile,'w') as f:
 
-                        fitt = str(self.fitness)
+                        fitt = str(self.fitness - 10000000)
                         f.write(fitt)
-                        self.stop()
+                        command.meta = 1
+                        # self.stop()
                 elif self.stuck:
                     with open(self.datafile,'w') as f:
-
-                        fitt = str(self.fitness + self.positionReward)
+                        # print('stuck')
+                        fitt = str(self.fitness - 1000000)
                         f.write(fitt)
-
-                        self.stop()
+                        command.meta = 1
+                        # self.stop()
                 else:
                     self.count += 1
 
                     self.sumspeed += carstate.speed_x
-                    self.speed=self.sumspeed / self.count
+                    self.speed = self.sumspeed / self.count
                     # print(carstate.race_position)
                     self.position = carstate.race_position
 
-                    from smth import fitness
+                    fitness_function, fitness_end_func = import_func(fitness_file_path=self.parser.fitness_function_file)
 
-                    if carstate.distance_raced>400 and False:
+                    if carstate.last_lap_time == 0:
 
-                        self.fitness = float((self.speed+float(carstate.distance_raced / 100)) + self.positionReward) + 30
+                        self.fitness = fitness_function(float(self.speed), float(carstate.distance_raced))
+                        # self.fitness = float((self.speed+float(carstate.distance_raced / 100)) + self.positionReward) + 30
                     else:
-                        self.fitness = float(carstate.distance_raced / 200) + self.speed * 10
-
+                        # self.fitness = float(carstate.distance_raced / 200) + self.speed * 10
+                        self.fitness = fitness_end_func(float(self.speed), float(carstate.distance_raced))
+                    # self.fitness += random.random()
                 # print("this is the message",sensor_dict)
 
                 _logger.debug(command)

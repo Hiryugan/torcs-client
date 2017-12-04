@@ -28,7 +28,7 @@ import pickle
 class MyDriver(Driver):
     # Override the `drive` method to create your own driver
 
-    def __init__(self, parser, log_data=False, net=None):
+    def __init__(self, parser, models=None, log_data=False, net=None):
         super(MyDriver, self).__init__()
 
         ## get filename in the arguments
@@ -36,27 +36,34 @@ class MyDriver(Driver):
         self.parser = parser
         self.net = None
 
-        self.models = {}
+        # self.models = {}
         self.o2i = {'accel': 0, 'brake': 1, 'steer': 2}
         self.i2o = {0: 'accel', 1: 'brake', 2: 'steer'}
-        print(self.parser.output_model)
+        # print(self.parser.output_model)
+        self.change_outputs = {}
+        if models is not None:
+            self.models = models
+        # else:
         for i in range(len(self.parser.output_model)):
-            print(self.parser.output_model[i])
-            if self.parser.output_model[i]['name'] is not None:
-                self.models[self.i2o[i]] = pickle.load(open(self.parser.output_model[i]['name'], 'rb'))
-        # for key, item in self.parser.output_model.iteritems():
-        #     if item['name'] != None:
-        #         self.models[key] = pickle.load(item['name'], 'rb')
-        self.model = self.models['steer']
+        #     print(self.parser.output_model[i])
+        #     if self.parser.output_model[i]['name'] != 'None':
+            #     self.models[self.i2o[i]] = pickle.load(open(self.parser.output_model[i]['name'], 'rb'))
+            if self.parser.output_model[i]['used'] == True:
+                self.change_outputs[self.i2o[i]] = True
+            else:
+                self.change_outputs[self.i2o[i]] = False
+
         self.use_supervised = False
         if len(self.models) > 0:
+            self.model = self.models['steer']
             self.use_supervised = True
             self.history = self.models['steer'].history_size
             self.input_dimensions = self.models['steer'].input_dimensions
             self.output_dimensions = self.models['steer'].output_dimensions
             self.state_dimensions = self.models['steer'].state_dimensions
+        self.state_dimensions = [6, 15, 16, 17] + list(range(18, 38)) + [42]
 
-            prefix_folder = self.parser.output_model['steer'].split('/')[:-1]
+            # prefix_folder = self.parser.output_model['steer'].split('/')[:-1]
 
             # t = pickle.load(open(prefix_folder+'/ustd_torch', 'rb'))
             # self.mu = t[0]
@@ -105,21 +112,21 @@ class MyDriver(Driver):
         for i in range(43, 48):
             m[i] = carstate.focused_distances_from_edge[i-43]
 
-        return m[5:]
-        # return m[self.state_dimensions]
+        # return m[5:]
+        return m[self.state_dimensions]
 
 
     def drive(self, carstate: State):
 
-        features = self.carstate_matrix2(carstate)
+        features = self.carstate_matrix2(carstate).reshape(1, -1)
 
         outCommand = Command()
         predictions = {}
         if self.use_supervised:
             features = Variable(torch.FloatTensor(features))
 
-            t_features = self.model.transform(features, self.mu[torch.LongTensor(self.state_dimensions)],
-                                              self.std[torch.LongTensor(self.state_dimensions)])
+            t_features = self.model.transform(features, self.model.mu[torch.LongTensor(self.state_dimensions)],
+                                              self.model.std[torch.LongTensor(self.state_dimensions)])
 
 
             if len(self.past_command) >= self.history:
@@ -129,78 +136,107 @@ class MyDriver(Driver):
                     feat2 = torch.cat((feat2, torch.FloatTensor(self.past_command[-i]).view(1, -1)), 1)
                 feat2 = Variable(feat2)
 
-                for i in range(len(self.models)):
-
-                    t_prediction = self.models[self.i2o[i]](feat2)
-
-                    prediction = self.model.back_transform(t_prediction,
-                                                            self.model.mu[torch.LongTensor([i])],
-                                                            self.model.std[torch.LongTensor([i])])
-                    # reshape to array
-                    prediction = prediction[0]
-                    predictions[self.i2o[i]] = prediction.data.numpy()
-
-                    # if self.parser.output_model[self.i2o[i]]['usage'] == True:
-                    #     features = np.hstack((features, prediction.data.numpy()))
+                for key, model in self.models.items():
 
 
+                        t_prediction = model(feat2)
 
+                        prediction = model.back_transform(t_prediction,
+                                                                model.mu[torch.LongTensor([i])],
+                                                                model.std[torch.LongTensor([i])])
+                        # reshape to array
+                        prediction = prediction[0]
+                        predictions[key] = prediction.data.numpy()
+
+                        # if self.parser.output_model[self.i2o[i]]['usage'] == True:
+                        #     features = np.hstack((features, prediction.data.numpy()))
 
 
 
 
 
+                # instead stack to t_features
             t_features_numpy = t_features.data.numpy()
 
             # done in any case - both beginning and with timestep > history
             self.past_command.append(t_features_numpy[0, :])
 
-
             # features = np.hstack((features, prediction))
-            for i in range(len(self.models)):
-                if self.parser.output_model[self.i2o[i]]['usage'] == True:
-                    features = np.hstack((features, predictions[self.i2o[i]]))
+            if len(self.past_command) > self.history:
+                for key, model in self.models.items():
+                    if self.change_outputs[key] == True:
+                        t_features_numpy = np.hstack((t_features_numpy, predictions[key].reshape(1, -1)))
 
             if len(self.past_command) > self.history:
                 self.past_command = self.past_command[1:]
+        # if not using supervised learning
+        else:
+            t_features_numpy = features
 
-
-        genetic_prediction = self.net.advance(features[self.state_dimensions], 0.1, 5)
+        # genetic_prediction = self.net.advance(features[0], 0.1, 5)
 
         # self.accelerate(carstate, v_x, outCommand)
         # self.steer(carstate, (genetic_prediction[0] * 2) - 1, outCommand)
 
         if self.it > 10:
+            genetic_prediction = self.net.activate(t_features_numpy[0])
 
             outCommand.clutch = 0  # prediction.data[4]
+            # print(genetic_prediction)
+            # if genetic_prediction[0] > 0:
+            #     if carstate.rpm > 8000:
+            #         outCommand.gear = carstate.gear + 1
+            # if carstate.rpm < 2500:
+            #     outCommand.gear = carstate.gear - 1
+            # if not outCommand.gear:
+            #     outCommand.gear = carstate.gear or 1
 
-            if carstate.rpm > 8000:
+            if carstate.rpm > 7000:
                 outCommand.gear += 1
             elif carstate.gear == 0:
                 outCommand.gear += 1
-            elif carstate.rpm < 2000:
+            elif carstate.rpm < 2500 and carstate.gear > 1:
                 outCommand.gear -= 1
+            #
+            # if carstate.rpm > 8000:
+            #     outCommand.gear += 1
+            # elif carstate.gear == 0:
+            #     outCommand.gear += 1
+            # elif carstate.rpm < 2000:
+            #     outCommand.gear -= 1
 
 
             idx = 0
+            if self.parser.merge_accel_brake == True:
+                if genetic_prediction[idx] > 0:
+                    outCommand.accelerator = genetic_prediction[idx]
+                    outCommand.brake = 0
+                else:
+                    outCommand.accelerator = 0
+                    outCommand.brake = -genetic_prediction[idx]
+                idx += 1
+            else:
+                if 'accel' in self.models:
+                    outCommand.accelerator = predictions['accel']
+                else:
+                    outCommand.accelerator = genetic_prediction[idx]
+                    idx += 1
+                if 'brake' in self.models:
+                    outCommand.brake = predictions['brake']
+                else:
+                    outCommand.brake = genetic_prediction[idx]
+                    idx += 1
+            if 'steer' in self.models:
+                outCommand.steer = predictions['steer']
+            else:
+                outCommand.steer = genetic_prediction[idx]
+                idx += 1
 
-            # for output in ['accel', 'brake', 'steer']:
-            if self.parser.output_model['accel'] != None:
-                outCommand.accelerator = predictions['accel']
-            else:
-                outCommand.accelerator = genetic_prediction[idx]
-                idx += 1
-            if self.parser.output_model['brake'] != None:
-                outCommand.accelerator = predictions['brake']
-            else:
-                outCommand.accelerator = genetic_prediction[idx]
-                idx += 1
-            if self.parser.output_model['steer'] != None:
-                outCommand.accelerator = predictions['steer']
-            else:
-                outCommand.accelerator = genetic_prediction[idx]
-                idx += 1
+            if self.parser.avoid_go_out == True:
+                if carstate.distance_from_center < -0.7 or carstate.distance_from_center > 0.7:
+                    self.steer(carstate, 0.0, outCommand)
         else:
+
             outCommand.accelerator = 1
             outCommand.gear = 1
             outCommand.steering = 0
@@ -208,7 +244,6 @@ class MyDriver(Driver):
             outCommand.clutch = 0
 
         self.it += 1
-
 
         return outCommand
 
@@ -220,3 +255,9 @@ class MyDriver(Driver):
         self.it = 0
         # self.__init__(logdata=False)
 
+    def steer(self, carstate, target_track_pos, command):
+        steering_error = target_track_pos - carstate.distance_from_center
+        command.steering = self.steering_ctrl.control(
+            steering_error,
+            carstate.current_lap_time
+        )
