@@ -178,7 +178,7 @@ class MyDriver(Driver):
         # self.accelerate(carstate, v_x, outCommand)
         # self.steer(carstate, (genetic_prediction[0] * 2) - 1, outCommand)
 
-        if self.it > 10:
+        if self.it > 20:
             genetic_prediction = self.net.activate(t_features_numpy[0])
 
             outCommand.clutch = 0  # prediction.data[4]
@@ -192,12 +192,15 @@ class MyDriver(Driver):
             #     outCommand.gear = carstate.gear or 1
 
             if carstate.rpm > 7000:
-                outCommand.gear += 1
-            elif carstate.gear == 0:
-                outCommand.gear += 1
+                outCommand.gear = carstate.gear + 1
+            elif carstate.gear <= 0:
+                outCommand.gear = carstate.gear + 1
             elif carstate.rpm < 2500 and carstate.gear > 1:
-                outCommand.gear -= 1
-            #
+                outCommand.gear = carstate.gear - 1
+            if not outCommand.gear:
+                outCommand.gear = carstate.gear or 1
+            # if outCommand.gear <= 0:
+            #     outCommand.gear += 1
             # if carstate.rpm > 8000:
             #     outCommand.gear += 1
             # elif carstate.gear == 0:
@@ -253,6 +256,7 @@ class MyDriver(Driver):
     def on_restart(self):
         # print("restarted")
         self.it = 0
+
         # self.__init__(logdata=False)
 
     def steer(self, carstate, target_track_pos, command):

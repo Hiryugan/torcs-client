@@ -12,7 +12,7 @@ fitness_function_file: fitness_functions/fit1.py
 
 
 tracks:
-  - name: forza
+  - name: alpine-1
     category: road
 
   - name: alpine-1

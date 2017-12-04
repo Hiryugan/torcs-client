@@ -8,11 +8,11 @@ save_path: neat_results/exp3/
 
 port: 2
 
-fitness_function_file: fitness_functions/fit2.py
+fitness_function_file: fitness_functions/fit1.py
 
 
 tracks:
-  - name: forza
+  - name: alpine-1
     category: road
 
   - name: alpine-1

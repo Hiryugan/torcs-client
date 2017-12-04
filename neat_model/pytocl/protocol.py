@@ -205,21 +205,24 @@ class Client:
                 self.timespend = carstate.current_lap_time
                 # import random
                 # self.fitness = random.random()
-                print('FITNEEEESSSSS ---> ', self.count, '  ', self.fitness)
+
 
                 if self.crashed:
-
+                    print('crashed')
                     with open(self.datafile,'w') as f:
 
-                        fitt = str(self.fitness - 10000000)
-                        f.write(fitt)
+                        self.fitness = self.fitness - 10000000
+                        f.write(str(self.fitness))
+                        print('FITNEEEESSSSS ---> ', self.count, '  ', self.fitness)
                         command.meta = 1
                         # self.stop()
                 elif self.stuck:
+                    print('stuck')
                     with open(self.datafile,'w') as f:
                         # print('stuck')
-                        fitt = str(self.fitness - 1000000)
-                        f.write(fitt)
+                        self.fitness = self.fitness - 1000000
+                        print('FITNEEEESSSSS ---> ', self.count, '  ', self.fitness)
+                        f.write(str(self.fitness))
                         command.meta = 1
                         # self.stop()
                 else:
@@ -233,12 +236,16 @@ class Client:
                     fitness_function, fitness_end_func = import_func(fitness_file_path=self.parser.fitness_function_file)
 
                     if carstate.last_lap_time == 0:
-
+                        print("calulate fit1")
                         self.fitness = fitness_function(float(self.speed), float(carstate.distance_raced))
                         # self.fitness = float((self.speed+float(carstate.distance_raced / 100)) + self.positionReward) + 30
                     else:
+                        print("calulate fit2")
                         # self.fitness = float(carstate.distance_raced / 200) + self.speed * 10
                         self.fitness = fitness_end_func(float(self.speed), float(carstate.distance_raced))
+
+
+                    print('FITNEEEESSSSS ---> ', self.count, '  ', self.fitness)
                     # self.fitness += random.random()
                 # print("this is the message",sensor_dict)
 

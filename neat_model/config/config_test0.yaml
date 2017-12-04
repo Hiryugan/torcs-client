@@ -6,13 +6,13 @@ server_config_file: /home/hiryugan/Documents/torcs-server/config/example_torcs_c
 
 save_path: neat_results/exp0/
 
-port: 0
+port: 9
 
 fitness_function_file: fitness_functions/fit1.py
 
 
 tracks:
-  - name: forza
+  - name: aalborg
     category: road
 
   - name: alpine-1
