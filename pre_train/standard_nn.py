@@ -86,28 +86,28 @@ class Standard_nn(nn.Module):
 
 
         for name in fnames:
-            try:
-                f = open('../data/' + name + '.pickle', 'rb')
-                data = pickle.load(f)
-                print('caricato ' + name)
-            except:
-                f = open('../data/' + name + '.pickle', 'wb')
-                data, _ = get_data2(name)
-                pickle.dump(data, f)
-                print('scritto ' + name)
+            # try:
+            #     f = open('../data/' + name + '.pickle', 'rb')
+            #     data = pickle.load(f)
+            #     print('caricato ' + name)
+            # except:
+            # f = open('../data/' + name + '.pickle', 'wb')
+            data, _ = get_data2(name)
+            # pickle.dump(data, f)
+            print('scritto ' + name)
             data = Variable(torch.from_numpy(data))
             self.datasets.append(data)
 
         for name in fnames_test:
-            try:
-                f = open('../data/' + name + '.pickle', 'rb')
-                data = pickle.load(f)
-                print('caricato test' + name)
-            except:
-                f = open('../data/' + name + '.pickle', 'wb')
-                data, _ = get_data2(name)
-                pickle.dump(data, f)
-                print('scritto test ' + name)
+            # try:
+            #     f = open('../data/' + name + '.pickle', 'rb')
+            #     data = pickle.load(f)
+            #     print('caricato test' + name)
+        # except:
+            # f = open('../data/' + name + '.pickle', 'wb')
+            data, _ = get_data2(name)
+            # pickle.dump(data, f)
+            print('scritto test ' + name)
             data = Variable(torch.from_numpy(data))
             self.datasets_test.append(data)
 

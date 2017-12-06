@@ -229,7 +229,7 @@ class Client:
                         # print('FITNEEEESSSSS ---> ', self.count, '  ', self.fitness)
                         command.meta = 1
                         # self.stop()
-                if self.crashed:
+                if self.crashed and False:
                     # print('crashed')
                     with open(self.datafile,'w') as f:
 
@@ -238,7 +238,7 @@ class Client:
                         # print('FITNEEEESSSSS ---> ', self.count, '  ', self.fitness)
                         command.meta = 1
                         # self.stop()
-                elif self.stuck:
+                elif self.stuck and False:
                     # print('stuck')
                     with open(self.datafile,'w') as f:
                         # print('stuck')

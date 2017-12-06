@@ -31,8 +31,9 @@ class MLP2(Standard_nn):
         self.fc2 = nn.Linear(256, 256)
         self.fc3 = nn.Linear(256, self.output_size)
         self.loss = nn.MSELoss()
+        self.lossbreak = nn.BCELoss()
         # self.conv1 = nn.Conv1d()
-        self.optimizer = optim.Adam(self.parameters(), lr=0.0002)
+        self.optimizer = optim.Adam(self.parameters(), lr=0.00001 / 20)
 
     def forward(self, x):
         xorig = x[:]
@@ -46,7 +47,7 @@ class MLP2(Standard_nn):
         # x[0] = F.sigmoid(x[0])
         # x[1] = F.sigmoid(x[1])
         # x[3] = F.tanh(x[3])
-        # x[4] = F.sigmoid(x[4])
+        # x = F.sigmoid(x)
         return x
 
 
@@ -65,7 +66,7 @@ class MLP2(Standard_nn):
             s = 0
             test_loss = 0.0
             # dataset, labels = datasett
-            for j in range(int(dataset.size(0) / (self.batch_size*self.history_size))):
+            for j in range(int(dataset.size(0) / (self.batch_size))):
                 i = j*self.batch_size
                 lookup_tensor = dataset[i:i + self.batch_size]
                 target = labels[i:i + self.batch_size]
@@ -126,9 +127,7 @@ class MLP2(Standard_nn):
             start = time.time()
             s_tot = 0.0
             train_loss_tot = 0.0
-            if ITER % 25 == 0 and ITER > 30:
-                for param_group in self.optimizer.param_groups:
-                    param_group['lr'] *= self.lr_decay
+
             shuffle(self.datasets)
             for dataset, labels in self.datasets:
                 train_loss = 0.0
@@ -172,6 +171,13 @@ class MLP2(Standard_nn):
             if ITER % 5 == 0:
                 self.evaluate(self.datasets_test)
             # evaluate
+            if ITER % 25 == 0 and ITER > 30:
+                for param_group in self.optimizer.param_groups:
+                    param_group['lr'] *= self.lr_decay
+            if ITER < 5:
+                print('we')
+                for param_group in self.optimizer.param_groups:
+                    param_group['lr'] *= 1.82056
         # self.save_model(self, open('models/mod_temporal_torch', 'wb'))
         # pickle.dump(self, open('models/mod_temporal_torch', 'wb') )
         # self.save_model([self.mu, self.std], open('models/ustd_torch', 'wb'))

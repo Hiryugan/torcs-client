@@ -116,16 +116,21 @@ def construct_dataset(dataset, input_indices, state_indices, output_indices, his
         return train, labels
 
 def smooth_dataset(dataset):
-    return dataset
-    for j in range(2):
+    # return dataset
+    for j in range(3):
         for i in range(1, dataset.shape[0] -1):
             if dataset[i, 1] == 0 and dataset[i-1, 1] != 0 and dataset[i+1, 1] != 0:
                 dataset[i, 1] = 0.5*(dataset[i-1, 1] + dataset[i+1, 1])
-
-    for j in range(2):
-        for i in range(1, dataset.shape[0] -1):
-            if dataset[i, 1] != 0 and dataset[i-1, 1] == 0 and dataset[i+1, 1] == 0:
-                dataset[i, 1] = 0
+            # if dataset[i, 1] > 0.1:
+            #     dataset[i, 1] = 1#*= 2
+            # else:
+            #     dataset[i, 1] = 0
+            # if dataset[i - 1, 1] != 0 or dataset[i + 1, 1] != 0:
+            #     dataset[i, 1] = 1
+    # for j in range(2):
+    #     for i in range(1, dataset.shape[0] -1):
+    #         if dataset[i, 1] != 0 and dataset[i-1, 1] == 0 and dataset[i+1, 1] == 0:
+    #             dataset[i, 1] = 0
 
     return dataset
 
