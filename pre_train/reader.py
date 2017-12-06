@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-def get_data2(files='alpine-1.csv', folder='../data/'):
+def get_data2(files='alpine-1.csv', folder='../data/', substitute_gear=-1):
 
     #files = ['aalborg.csv', 'alpine-1.csv' , 'f-speedway.csv']
     # files = ['aalborg.csv']#, 'alpine-1.csv' , 'f-speedway.csv']
@@ -56,6 +56,8 @@ def get_data2(files='alpine-1.csv', folder='../data/'):
     npdata = np.array(data, dtype=np.float32)
 
     print("letto shape", npdata.shape)
+    if substitute_gear > 0:
+        npdata[:, 2] = npdata[:, substitute_gear]
     return smooth_dataset(npdata), np.array(tags)
 
 import random
@@ -66,6 +68,9 @@ def construct_dataset(dataset, input_indices, state_indices, output_indices, his
     # sd = state_indices.size(0)
     print('a')
     od = len(output_indices)
+
+    # noise = np.random.normal(0, 0.01, dataset.shape[0] * dataset.shape[1]).reshape(dataset.shape)
+    # dataset += noise
     # od = output_indices.size(0)
     difficult = 0
     if all:
@@ -121,6 +126,7 @@ def smooth_dataset(dataset):
         for i in range(1, dataset.shape[0] -1):
             if dataset[i, 1] == 0 and dataset[i-1, 1] != 0 and dataset[i+1, 1] != 0:
                 dataset[i, 1] = 0.5*(dataset[i-1, 1] + dataset[i+1, 1])
+
             # if dataset[i, 1] > 0.1:
             #     dataset[i, 1] = 1#*= 2
             # else:
@@ -170,3 +176,49 @@ def construct_dataset_lstm(dataset, input_indices, state_indices, output_indices
     # print(train.shape, labels.shape)
     print(s)
     return train, labels
+
+
+
+def construct_dataset_velocity(dataset, input_indices, state_indices, output_indices, history_size, all=False, is_train=False, look_ahead = 20):
+    id = len(input_indices)
+    # id = input_indices.size(0)
+    sd = len(state_indices)
+    # sd = state_indices.size(0)
+    print('a')
+    od = len(output_indices)
+
+    # noise = np.random.normal(0, 0.01, dataset.shape[0] * dataset.shape[1]).reshape(dataset.shape)
+    # dataset += noise
+    # od = output_indices.size(0)
+    difficult = 0
+    if all:
+        train = np.zeros((dataset.shape[0] - history_size - look_ahead - 1, int(id*(history_size-1) + sd)))
+    else:
+        train = np.zeros((int((dataset.shape[0] / history_size)) ,int(id*(history_size-1) + sd) ))
+    labels = np.zeros((train.shape[0], od))
+    s = 0
+    train2 = train.copy()
+    # train2 = np.zeros((1, int(id*(history_size-1) + sd) ))
+    labels2 = labels.copy()
+    idx = 0
+    # labels2 = np.zeros((1, od) )
+    for i in range(train.shape[0]):
+        rnd = random.randint(0, dataset.shape[0] - history_size - 1)
+        if all:
+            rnd = i
+        # rnd = i
+        countsteer = 0
+
+        labels[i, :] = dataset[rnd+history_size+look_ahead, output_indices]
+        train[i, :sd] = dataset[rnd, state_indices]
+        train[i, sd:] = dataset[rnd:rnd+history_size-1, input_indices].reshape(1, -1)
+
+    # for i in range(train.shape[0]):
+    #     if np.abs(train[i, 0]) < 0.1:
+    #         s += 1
+    print(train.shape, labels.shape, s, difficult)
+    print(train2.shape, labels2.shape, s, difficult)
+    if is_train:
+        return train2[:idx], labels2[:idx]
+    else:
+        return train, labels

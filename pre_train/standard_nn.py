@@ -92,7 +92,7 @@ class Standard_nn(nn.Module):
             #     print('caricato ' + name)
             # except:
             # f = open('../data/' + name + '.pickle', 'wb')
-            data, _ = get_data2(name)
+            data, _ = get_data2(name, substitute_gear=15)
             # pickle.dump(data, f)
             print('scritto ' + name)
             data = Variable(torch.from_numpy(data))
@@ -105,7 +105,7 @@ class Standard_nn(nn.Module):
             #     print('caricato test' + name)
         # except:
             # f = open('../data/' + name + '.pickle', 'wb')
-            data, _ = get_data2(name)
+            data, _ = get_data2(name, substitute_gear=15)
             # pickle.dump(data, f)
             print('scritto test ' + name)
             data = Variable(torch.from_numpy(data))
@@ -167,25 +167,41 @@ class Standard_nn(nn.Module):
 
     def transform(self, Y, mu, std):
         # return Y
-        X = Variable(Y.data.clone())
+        # start = time.time()
+        # X = Variable(Y.data.clone())
+        # print('pre transform', time.time() - start)
+        Q = Variable(Y.data.clone())
+
         # print(X)
         # print(X.size(1))
         # print(mu[:X.size(1)])
-        X = X - mu[:X.size(1)]
-        for i in range(X.size(1)):
-            if std.data[i] > 0:
-                X[:, i] /= std[i]
-        return X
+        # X = X - mu[:X.size(1)]
+        # start = time.time()
+        Q = Q - mu[:Q.size(1)]
+        # for i in range(X.size(1)):
+        #     if std.data[i] > 0:
+        #         X[:, i] /= std[i]
+        Q /= std
+        # print('post transform', time.time() - start)
+
+        # if torch.sum(Q - X).data[0] != 0:
+        #     raise 'wtf'
+        return Q
 
     def back_transform(self, Y, mu, std):
         # return Y
-        X = Variable(Y.data.clone())
-        for i in range(X.size(1)):
-            if std.data[i] > 0:
-                for j in range(X.size(0)):
-                    X[j, i] = X[j, i] * std[i]
-        X += mu[:X.size(1)]
-        return X
+        # X = Variable(Y.data.clone())
+        Q = Variable(Y.data.clone())
+        # for i in range(X.size(1)):
+        #     if std.data[i] > 0:
+        #         for j in range(X.size(0)):
+        #             X[j, i] = X[j, i] * std[i]
+        Q = Q * std
+        # X += mu[:X.size(1)]
+        Q += mu[:Q.size(1)]
+        # if torch.sum(Q - X).data[0] != 0:
+        #     raise 'wtf'
+        return Q
 
     def transform2(self, Y, mu, std):
         # return Y

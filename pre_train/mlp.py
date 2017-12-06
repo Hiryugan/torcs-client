@@ -33,7 +33,7 @@ class MLP2(Standard_nn):
         self.loss = nn.MSELoss()
         self.lossbreak = nn.BCELoss()
         # self.conv1 = nn.Conv1d()
-        self.optimizer = optim.Adam(self.parameters(), lr=0.00001 / 20)
+        self.optimizer = optim.Adam(self.parameters(), lr=0.0001 / 20)
 
     def forward(self, x):
         xorig = x[:]
