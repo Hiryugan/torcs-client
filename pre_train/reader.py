@@ -187,7 +187,7 @@ def construct_dataset_lstm(dataset, input_indices, state_indices, output_indices
 
 
 
-def construct_dataset_velocity(dataset, input_indices, state_indices, output_indices, history_size, all=False, is_train=False, look_ahead = 20):
+def construct_dataset_velocity(dataset, input_indices, state_indices, output_indices, history_size, all=False, is_train=False, look_ahead = 15):
     id = len(input_indices)
     # id = input_indices.size(0)
     sd = len(state_indices)

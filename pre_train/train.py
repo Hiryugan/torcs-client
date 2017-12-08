@@ -8,7 +8,7 @@ import pickle
 # notice, 48 uses all dimensions but the opponent sensors
 # use the first 5 dimensions as outputs (accel, brake, gear, steer, clutch)
 # output_dimensions = [0, 1, 2, 3, 4]
-output_dimensions = [0, 1, 3]#[0, 1, 2, 3, 4]
+output_dimensions = [3]#[0, 1, 2, 3, 4]
 # dimensions of the state input (all the car state but opponents)
 # state_dimensions = [i for i in range(5, 48)]
 # state_dimensions = [15] + list(range(18, 37))
@@ -40,9 +40,9 @@ dataset_names3 = [x + '_2' for x in dataset_names_test]
 # construct_fun = construct_dataset_lstm
 # model = myLSTM(input_dimensions = input_dimensions,output_dimensions = output_dimensions, state_dimensions=state_dimensions, batch_size = batch_size, history_size = history_size, cuda = cuda, epochs = epochs)
 
-construct_fun = construct_dataset
+# construct_fun = construct_dataset
 # construct_fun = construct_dataset_dirt
-# construct_fun = construct_dataset_velocity
+construct_fun = construct_dataset_velocity
 model = MLP2(input_dimensions = input_dimensions,output_dimensions = output_dimensions, state_dimensions=state_dimensions, batch_size = batch_size, history_size = history_size, cuda = cuda, epochs = epochs)
 # model.init_datasets(fnames=dataset_names2, fnames_test=dataset_names3, normalize=True)
 model.init_datasets(fnames=dataset_names2, fnames_test=dataset_names3, construct_dataset_function=construct_fun, normalize=True)

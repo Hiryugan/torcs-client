@@ -242,26 +242,27 @@ class MyDriver:
             t_predictionv = self.modelv(featv)
             # s2 = time.time()
             prediction = self.model3.back_transform(t_prediction,
-                                                     self.model3.mu[torch.LongTensor([3])],
-                                                     self.model3.std[torch.LongTensor([3])])
+                                                     self.model3.mu[torch.LongTensor(self.model3.output_dimensions)],
+                                                     self.model3.std[torch.LongTensor(self.model3.output_dimensions)])
             predictionv = self.modelv.back_transform(t_predictionv,
-                                                   self.modelv.mu[torch.LongTensor([1])],
-                                                   self.modelv.std[torch.LongTensor([1])])
+                                                   self.modelv.mu[torch.LongTensor(self.modelv.output_dimensions)],
+                                                   self.modelv.std[torch.LongTensor(self.modelv.output_dimensions)])
 
 
             prediction = prediction[0]
-            # prediction = F.tanh(prediction)
-            # a = F.sigmoid(prediction[0])
-            # b = F.sigmoid(prediction[1])
-            # s = F.tanh(prediction[2])
             predictionv = predictionv[0]
+            # prediction = F.tanh(prediction)
+            # predictionv[0] = F.sigmoid(predictionv[0])
+            # predictionv[1] = F.sigmoid(predictionv[1])
+            # prediction[2] = F.tanh(prediction[2])
+            # predictionv = predictionv[0]
             # predictionv = F.sigmoid(predictionv)
 
             # _logger.info(prediction3.data[0])
             # print('we')
             # print(a.data[0], b.data[0], s.data[0])
             if self.it > 100:
-                # print(prediction.data[0])
+                print(predictionv.data[0])
                 outCommand.steering = prediction.data[0]
                 # if carstate.distance_from_center > 0.9 or carstate.distance_from_center < -0.9:
                 #     self.steer(carstate, 0.0, outCommand)
@@ -269,15 +270,21 @@ class MyDriver:
 
                 # print(predictionv.data[0])
                 # outCommand.accelerator = prediction.data[0]
-                # if prediction.data[1] > 0.5:
-                #     outCommand.brake = b
-                #     outCommand.accelerator = 0
+                # self.change_gear(carstate, outCommand)
+                # if predictionv.data[1] > 0.5:
+                #     if self.brake == 0:
+                #         outCommand.brake = predictionv.data[1]
+                #         outCommand.accelerator = 0
+                #         self.brake = 1
+                #     else:
+                #         self.brake = 0
                 # else:
-                #     outCommand.accelerator = a
+                #     outCommand.accelerator = predictionv.data[0]
                 #     outCommand.brake = 0
+                #     self.brake = 0
                 # outCommand.steering = s
                 self.accelerate(carstate, (np.sum(carstate.distances_from_edge) / 600)**2 * 150 + 10, outCommand)
-                # self.accelerate(carstate, 80, outCommand)
+                # self.accelerate(carstate, predictionv.data[0], outCommand)
                 # print(predictionv.data[0])
 
                 # self.change_gear(carstate, outCommand)
