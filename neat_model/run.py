@@ -111,12 +111,14 @@ def run():
     else:
         level = logging.INFO
     del args.v
+    # del args.rel
     logging.basicConfig(
         level=level,
         format="%(asctime)s %(levelname)7s %(name)s %(message)s"
     )
 
     r = args.rel
+    del args.rel
 
 
     config_parser = Parser(config_file)
@@ -171,6 +173,7 @@ def run():
 
 
 
+
     if r != 'None':
         config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                              neat.DefaultSpeciesSet, neat.DefaultStagnation,
@@ -179,7 +182,7 @@ def run():
         net = neat.nn.FeedForwardNetwork.create(winner, config)
 
         driver = MyDriver(parserg, models=models, net=net)
-        del args.rel
+        # del args.rel
         client = Client(parserg, driver=driver, **argsg.__dict__)
         client.run()
 
@@ -197,7 +200,7 @@ def run():
         pop.add_reporter(neat.StdOutReporter(True))
 
         pe = neat.ParallelEvaluator(1, eval_genome_func)
-        winner = pop.run(pe.evaluate, 100)
+        winner = pop.run(pe.evaluate, 1)
 
         # Save the winner.
         with open(config_parser.save_path + '_winner.pkl', 'wb') as f:

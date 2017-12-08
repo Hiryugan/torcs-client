@@ -165,3 +165,7 @@ def construct_dataset_lstm(dataset, input_indices, state_indices, output_indices
     # print(train.shape, labels.shape)
     print(s)
     return train, labels
+
+
+import random
+

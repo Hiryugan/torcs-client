@@ -1,3 +1,4 @@
+
 import time
 import random
 import torch
@@ -6,12 +7,13 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import numpy as np
-from pre_train.reader import get_data2, construct_dataset
+from pre_train.reader import get_data2, construct_dataset, construct_dataset_dirt
 import pickle
 from sklearn.decomposition import PCA
 
 # from .pickler import load_model, save_model
 import copy
+
 torch.manual_seed(42)
 
 class Standard_nn(nn.Module):
@@ -122,16 +124,33 @@ class Standard_nn(nn.Module):
 
         l = []
         l2 = []
-        for data in self.datasets:
+        for i, data in enumerate(self.datasets):
             # data2, label2 = construct_dataset(data.data.numpy(), [i for i in range(48)], [i for i in range(5, 48)], [0,1,2,3,4], 4)
-            data2, label2 = construct_dataset_function(data.data.numpy(), self.input_dimensions, self.state_dimensions, self.output_dimensions, self.history_size, all=True, is_train=False)
+            if construct_dataset_function == construct_dataset_dirt:
+                data2, label2 = construct_dataset_function(data.data.numpy(), self.input_dimensions,
+                                                           self.state_dimensions, self.output_dimensions,
+                                                           self.history_size, all=True, is_train=False,
+                                                           is_dirty=1 if i < 6 else 0)
+            else:
+                data2, label2 = construct_dataset_function(data.data.numpy(), self.input_dimensions,
+                                                           self.state_dimensions, self.output_dimensions,
+                                                           self.history_size, all=True, is_train=False)
             data2 = Variable(torch.FloatTensor(data2))
             label2 = Variable(torch.FloatTensor(label2))
             l.append((data2, label2))
-
-        for data in self.datasets_test:
+            ## NOTE!!! please put dirt1 .. dirt6 as first 6 datasets for this to work
+        for i, data in enumerate(self.datasets_test):
             # data2, label2 = construct_dataset(data.data.numpy(), [i for i in range(48)], [i for i in range(5, 48)], [0, 1,2,3,4], 4, all=True)
-            data2, label2 = construct_dataset_function(data.data.numpy(), self.input_dimensions, self.state_dimensions, self.output_dimensions, self.history_size, all=True, is_train=False)
+            if construct_dataset_function == construct_dataset_dirt:
+                data2, label2 = construct_dataset_function(data.data.numpy(), self.input_dimensions,
+                                                           self.state_dimensions, self.output_dimensions,
+                                                           self.history_size, all=True, is_train=False,
+                                                           is_dirty=1 if i < 6 else 0)
+
+            else:
+                data2, label2 = construct_dataset_function(data.data.numpy(), self.input_dimensions,
+                                                           self.state_dimensions, self.output_dimensions,
+                                                           self.history_size, all=True, is_train=False)
             data2 = Variable(torch.FloatTensor(data2))
             label2 = Variable(torch.FloatTensor(label2))
             l2.append((data2, label2))

@@ -34,9 +34,13 @@ def get_data2(files='alpine-1.csv', folder='../data/', substitute_gear=-1):
             name = a[0]
             if name == '\n':
                 break
-            if len(a) > 2 and name != '(opponents':
+            if len(a) > 2:
                 for v in a[1:]:
-                    datarow.append(v)
+                    if name == '(opponents':
+                        datarow.append(float(v))
+                    else:
+                        datarow.append(float(v))
+            # elif name != '(gear2' and name != '(opponents' and name != '(angle2':
             elif name != '(gear2' and name != '(opponents' and name != '(angle2':
                 datarow.append(float(a[1]))
             elif name == '(angle2':
@@ -48,13 +52,17 @@ def get_data2(files='alpine-1.csv', folder='../data/', substitute_gear=-1):
         else:
             s+=1
     print(s)
+
     # npdata = np.zeros((len(data), len(data[0])))
     # for i, row in enumerate(data):
     #     row = list(map(float, row))
     #     print(row)
     #     npdata[i] = np.array(row)
     npdata = np.array(data, dtype=np.float32)
-
+    print(npdata.shape)
+    opps = npdata[:, 14:50]
+    npdata = np.hstack((npdata[:, :14], npdata[:, 50:]))
+    npdata = np.hstack((npdata, opps))
     print("letto shape", npdata.shape)
     if substitute_gear > 0:
         npdata[:, 2] = npdata[:, substitute_gear]
@@ -212,6 +220,42 @@ def construct_dataset_velocity(dataset, input_indices, state_indices, output_ind
         labels[i, :] = dataset[rnd+history_size+look_ahead, output_indices]
         train[i, :sd] = dataset[rnd, state_indices]
         train[i, sd:] = dataset[rnd:rnd+history_size-1, input_indices].reshape(1, -1)
+
+    # for i in range(train.shape[0]):
+    #     if np.abs(train[i, 0]) < 0.1:
+    #         s += 1
+    print(train.shape, labels.shape, s, difficult)
+    print(train2.shape, labels2.shape, s, difficult)
+    if is_train:
+        return train2[:idx], labels2[:idx]
+    else:
+        return train, labels
+
+def construct_dataset_dirt(dataset, input_indices, state_indices, output_indices, history_size, all=False,
+                           is_train=False, is_dirty=0):
+    id = len(input_indices)
+    sd = len(state_indices)
+    print('a')
+    od = len(output_indices)
+    difficult = 0
+    if all:
+        train = np.zeros((dataset.shape[0] - history_size - 1, int(id * (history_size - 1) + sd)))
+    else:
+        train = np.zeros((int((dataset.shape[0] / history_size)), int(id * (history_size - 1) + sd)))
+    labels = np.zeros((train.shape[0], od))
+    s = 0
+    train2 = train.copy()
+    labels2 = labels.copy()
+    idx = 0
+    for i in range(train.shape[0]):
+        rnd = random.randint(0, dataset.shape[0] - history_size - 1)
+        if all:
+            rnd = i
+        # rnd = i
+
+        labels[i, :] = 1 if is_dirty == 1 else 0
+        train[i, :sd] = dataset[rnd, state_indices]
+        train[i, sd:] = dataset[rnd:rnd + history_size - 1, input_indices].reshape(1, -1)
 
     # for i in range(train.shape[0]):
     #     if np.abs(train[i, 0]) < 0.1:

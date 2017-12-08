@@ -12,7 +12,7 @@ fitness_function_file: fitness_functions/fit1.py
 
 
 tracks:
-  - name: aalborg
+  - name: wheel-2
     category: road
 
   - name: alpine-1
@@ -31,9 +31,9 @@ output_model:
     used: False
 
   - feature: steer
-    name: pre_train/models/mod_temporal_torch_3_nice
+    name: pre_train/models/mod_temporal_torch_3
     used: True
 
-merge_accel_brake: False
+merge_accel_brake: sum
 
 avoid_go_out: True

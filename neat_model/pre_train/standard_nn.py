@@ -122,15 +122,15 @@ class Standard_nn(nn.Module):
 
         l = []
         l2 = []
-        for data in self.datasets:
+        for i, data in enumerate(self.datasets):
             # data2, label2 = construct_dataset(data.data.numpy(), [i for i in range(48)], [i for i in range(5, 48)], [0,1,2,3,4], 4)
+
             data2, label2 = construct_dataset_function(data.data.numpy(), self.input_dimensions, self.state_dimensions, self.output_dimensions, self.history_size, all=True, is_train=False)
             data2 = Variable(torch.FloatTensor(data2))
             label2 = Variable(torch.FloatTensor(label2))
             l.append((data2, label2))
-
-        for data in self.datasets_test:
-            # data2, label2 = construct_dataset(data.data.numpy(), [i for i in range(48)], [i for i in range(5, 48)], [0, 1,2,3,4], 4, all=True)
+        ## NOTE!!! please put dirt1 .. dirt6 as first 6 datasets for this to work
+        for i, data in enumerate(self.datasets_test):
             data2, label2 = construct_dataset_function(data.data.numpy(), self.input_dimensions, self.state_dimensions, self.output_dimensions, self.history_size, all=True, is_train=False)
             data2 = Variable(torch.FloatTensor(data2))
             label2 = Variable(torch.FloatTensor(label2))

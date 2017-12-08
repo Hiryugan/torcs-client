@@ -174,7 +174,8 @@ class Client:
             # buffer = [MSG_RESTART]
 
             _logger.debug('Received buffer {!r}.'.format(buffer))
-
+            MPS_PER_KMH = 1000 / 3600
+            # print('we')
             if not buffer:
                 return
 
@@ -210,39 +211,41 @@ class Client:
 
                 self.crashed = False
                 self.stuck = False
-                if carstate.current_lap_time > 1:
+                if carstate.current_lap_time > 3:
 
                     if carstate.distance_from_center < -0.9 or carstate.distance_from_center > 0.9:
                         self.crashed = True
-                if carstate.speed_x < 5 and carstate.current_lap_time > 3:
+                # print(carstate.speed_x / MPS_PER_KMH, carstate.current_lap_time)
+                if carstate.speed_x / MPS_PER_KMH < 2 and carstate.current_lap_time > 3:
                     self.stuck = True
 
                 self.timespend = carstate.current_lap_time
                 # import random
+                fitness_function, fitness_end_func = import_func(fitness_file_path=self.parser.fitness_function_file)
                 # self.fitness = random.random()
                 if carstate.current_lap_time + carstate.last_lap_time > 130:
                     # print('time expired')
                     with open(self.datafile,'w') as f:
 
-                        # self.fitness = self.fitness - 10000000
+                        self.fitness = fitness_end_func(float(self.speed), float(carstate.distance_raced))
                         f.write(str(self.fitness))
                         # print('FITNEEEESSSSS ---> ', self.count, '  ', self.fitness)
                         command.meta = 1
                         # self.stop()
-                if self.crashed and False:
+                if self.crashed:
                     # print('crashed')
                     with open(self.datafile,'w') as f:
 
-                        # self.fitness = self.fitness - 10000000
+                        self.fitness = self.fitness - 10000000
                         f.write(str(self.fitness))
                         # print('FITNEEEESSSSS ---> ', self.count, '  ', self.fitness)
                         command.meta = 1
                         # self.stop()
-                elif self.stuck and False:
+                elif self.stuck:
                     # print('stuck')
                     with open(self.datafile,'w') as f:
                         # print('stuck')
-                        # self.fitness = self.fitness - 1000000
+                        self.fitness = self.fitness - 1000000
                         # print('FITNEEEESSSSS ---> ', self.count, '  ', self.fitness)
                         f.write(str(self.fitness))
                         command.meta = 1
@@ -255,7 +258,7 @@ class Client:
                     # print(carstate.race_position)
                     self.position = carstate.race_position
 
-                    fitness_function, fitness_end_func = import_func(fitness_file_path=self.parser.fitness_function_file)
+                    
                     self.fitness = fitness_function(float(self.speed), float(carstate.distance_raced))
                     # if carstate.last_lap_time == 0:
                     #     self.fitness = fitness_function(float(self.speed), float(carstate.distance_raced))
