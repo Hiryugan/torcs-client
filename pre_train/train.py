@@ -3,7 +3,7 @@ from pre_train.mlp import MLP2
 from pre_train.reader import construct_dataset_lstm, construct_dataset, construct_dataset_velocity, construct_dataset_dirt
 from pre_train.lstm import myLSTM
 import pickle
-
+import torch
 # indices of the input dimensions for the past frames
 # notice, 48 uses all dimensions but the opponent sensors
 # use the first 5 dimensions as outputs (accel, brake, gear, steer, clutch)
@@ -50,10 +50,11 @@ model.init_datasets(fnames=dataset_names2, fnames_test=dataset_names3, construct
 
 loss, mu, std = model.train()
 for i in output_dimensions:
-    pickle.dump(model, open('models/mod_temporal_torch' + '_' + str(i), 'wb'))
+    torch.save(model, 'models/mod_temporal_torch' + '_' + str(i))
+    # pickle.dump(model, open('models/mod_temporal_torch' + '_' + str(i), 'wb'))
 
-pickle.dump([mu, std], open('models/ustd_torch', 'wb'))
-pickle.dump([output_dimensions, state_dimensions, input_dimensions, history_size], open('models/dimensions', 'wb'))
+# pickle.dump([mu, std], open('models/ustd_torch', 'wb'))
+# pickle.dump([output_dimensions, state_dimensions, input_dimensions, history_size], open('models/dimensions', 'wb'))
 
 
 # model = pickle.load(open('models/mod_temporal_torch', 'rb'))

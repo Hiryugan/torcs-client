@@ -289,8 +289,8 @@ class MLP2(Standard_nn):
         self.datasets_orig = None
         self.datasets_orig_test = None
         #
-        self = self.cpu()
-        self.mu = self.mu.cpu()
-        self.std = self.std.cpu()
+        # self = self.cpu()
+        # self.mu = self.mu.cpu()
+        # self.std = self.std.cpu()
         return train_loss, self.mu, self.std
             # print("iter %r: test acc=%.4f" % (ITER, acc))

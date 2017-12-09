@@ -15,6 +15,4 @@ args = parser.parse_args()
 file = args.file
 
 model = pickle.load(open(file, 'rb'))
-model = model.cpu()
-
-pickle.dump(model, open(file + '_cpu', 'wb'))
+torch.save(model, file + '.torch')
