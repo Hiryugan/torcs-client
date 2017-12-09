@@ -519,10 +519,10 @@ class MyDriver:
             command.brake = min(-acceleration, 1)
 
         if carstate.rpm < 2500:
-            if carstate.gear == 0:
-                if carstate.speed_x > 2:
-                    command.gear = carstate.gear - 1
-            elif carstate.gear > 0:
+            # if carstate.gear == 0:
+            #     if carstate.speed_x > 2:
+            #         command.gear = carstate.gear - 1
+            if carstate.gear > 0:
                 command.gear = carstate.gear - 1
 
         if not command.gear:
@@ -546,10 +546,10 @@ class MyDriver:
         #     command.brake = min(-acceleration, 1)
 
         if carstate.rpm < 2500:
-            if carstate.gear == 0:
-                if carstate.speed_x > 2:
-                    command.gear = carstate.gear - 1
-            elif carstate.gear > 0:
+            # if carstate.gear == 0:
+            #     if carstate.speed_x > 2:
+            #         command.gear = carstate.gear - 1
+            if carstate.gear > 0:
                 command.gear = carstate.gear - 1
 
         if not command.gear:
