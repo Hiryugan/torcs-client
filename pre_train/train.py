@@ -17,14 +17,16 @@ input_dimensions = state_dimensions
 history_size = 4
 batch_size = 1024
 cuda = True
-epochs = 50
+epochs = 100
 # todo: correct data with -1, avoid frames without change in angle
 
 # dataset_names = [ 'aalborg', 'alpine', 'cg_speedway_number1', 'etrack3', 'spring']
 # dataset_names = [ 'aalborg', 'alpine', 'cg_speedway_number1', 'spring']
 # dataset_names = ['alpine', 'aalborg', 'forza', 'etrack3', 'etrack2', 'spring', 'wheel1', 'street1']
-dataset_names = ['etrack3','etrack2', 'wheel1', 'oval4','oval5', 'street1', 'aalborg','forza', 'alpine', 'wheel2','olethros_road_1', 'ruudskogen', 'alpine2', 'spring', 'cg_track3', 'corkscrew', 'eroad', 'etrack6', 'brondehach']
+d2 = ['etrack3','etrack2', 'street1', 'aalborg', 'alpine', 'wheel2', 'ruudskogen', 'alpine2', 'spring', 'olethros_road_1', 'forza', 'street1','etrack4', 'etrack', 'cg_track_2', 'aalborg' , 'alpine2']
 # dataset_names = ['dirt1_2', 'dirt2_2', 'dirt3_2', 'dirt4_2', 'dirt5_2', 'dirt6_2']
+dataset_names = ['aalborg_5-4_ok', 'alpine_5-3_ok', 'alpine_8-5_difficult', 'brondehach_8-6_ok', 'cg_speedway_ok', 'cg_track2_wiggle', 'eroad_8-3_ok',
+                 'etrack2_5-4_ok', 'etrack_8-3_bumps', 'forza_8-6_wiggle', 'olethros_road_ok', 'wheel2_6-2_3bumps']
 # dataset_names = ['etrack3_opp9','etrack2_opp4', 'wheel2_opp6',  'street1_opp10', 'aalborg_opp7','forza_opp4', 'spring_opp10', 'alpine_opp5', 'eroad_opp3', 'corkscrew_opp1']
 # d2 = ['olethros_road_1', 'etrack4', 'etrack', 'cg_track_2', 'alpine2']
 # d2 = ['olethros_road_1', 'forza', 'street1','etrack4', 'etrack', 'cg_track_2', 'aalborg' , 'alpine2']
@@ -33,9 +35,9 @@ dataset_names = ['etrack3','etrack2', 'wheel1', 'oval4','oval5', 'street1', 'aal
 # dataset_names_test = ['dirt1','dirt2','dirt3','dirt4','dirt6','mixed1','mixed2']
 dataset_names_test = ['oval1']#,'oval2','oval3','oval4','oval5','oval6','oval7','oval9','oval10', ]
 # dataset_names_test = ['etrack3', 'forza','cg_track3','etrack4', 'ruudskogen','etrack', 'cg_track_2','spring' , 'aalborg', 'alpine2', 'cg_speedway_number1', 'olethros_road_1', 'brondehach']
-# dataset_names2 = dataset_names + [x + '_2' for x in d2]
+dataset_names2 = [x + '_2' for x in d2]
 # dataset_names2 = [x  for x in dat aset_names]
-dataset_names2 = [x + '_2' for x in dataset_names]
+# dataset_names2 = [x + for x in dataset_names]
 dataset_names3 = [x + '_2' for x in dataset_names_test[-1:]]
 
 # construct_fun = construct_dataset_lstm

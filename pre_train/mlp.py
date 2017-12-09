@@ -24,11 +24,11 @@ class MLP2(Standard_nn):
         Standard_nn.__init__(self, input_dimensions, output_dimensions, state_dimensions, batch_size, cuda, epochs)
 
         self.lr_decay = 0.8
-        self.fc1 = nn.Linear(self.input_size * (history_size - 1) + self.state_size, 64)
+        self.fc1 = nn.Linear(self.input_size * (history_size - 1) + self.state_size, 128)
         self.bn1 = nn.BatchNorm1d(512)
         self.bn2 = nn.BatchNorm1d(512)
-        self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, self.output_size)
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, self.output_size)
         # self.fc1.weight.data = nn.init.orthogonal(self.fc1.weight.data)
         # self.fc2.weight.data = nn.init.orthogonal(self.fc2.weight.data)
         # self.fc3.weight.data = nn.init.orthogonal(self.fc3.weight.data)
@@ -39,7 +39,6 @@ class MLP2(Standard_nn):
         # self.optimizer = optim.SGD(self.parameters(), lr=0.05 / 20, momentum=0.5, weight_decay=0.00001, nesterov=True)
 
     def forward(self, x):
-        xorig = x[:]
         x = F.selu(self.fc1(x))
         # x = self.drop(x)
         # x = torch.cat((x, xorig), 1)

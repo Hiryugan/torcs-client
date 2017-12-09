@@ -101,19 +101,19 @@ class MyDriver:
         """ ******************************************* """
         """ swarm stupidity """
         """ ******************************************* """
-        self.filename1 = 'swarm_file1.marshal'
-        self.filename2 = 'swarm_file2.marshal'
-        self.filename3 = 'deleted.txt'
-        self.dict1 = {}
-        self.dict2 = {}
-        self.pause_swarm = 0
-        self.wait_time = 0
-
-        if os.path.isfile(self.filename1):
-            self.swarm_file1 = open(self.filename2, "wb", os.O_NONBLOCK)
-            # self.swarm_file1 = open(self.filename2, "wb+")
-        else:
-            self.swarm_file1 = open(self.filename1, "wb", os.O_NONBLOCK)
+        # self.filename1 = 'swarm_file1.marshal'
+        # self.filename2 = 'swarm_file2.marshal'
+        # self.filename3 = 'deleted.txt'
+        # self.dict1 = {}
+        # self.dict2 = {}
+        # self.pause_swarm = 0
+        # self.wait_time = 0
+        #
+        # if os.path.isfile(self.filename1):
+        #     self.swarm_file1 = open(self.filename2, "wb", os.O_NONBLOCK)
+        #     # self.swarm_file1 = open(self.filename2, "wb+")
+        # else:
+        #     self.swarm_file1 = open(self.filename1, "wb", os.O_NONBLOCK)
 
         """ ******************************************* """
         """ swarm stupidity """
@@ -190,31 +190,31 @@ class MyDriver:
         """ ******************************************* """
         """ swarm stupidity """
         """ ******************************************* """
-        if self.pause_swarm > 0:
-            self.pause_swarm -= 1
-
-        if self.it == 0:
-            self.dict1 = {}
-            self.dict2 = {}
-            if self.swarm_file1.name == self.filename1:
-                self.swarm_file2 = open(self.filename2, 'rb+')
-            else:
-                self.swarm_file2 = open(self.filename1, 'rb+')
-
-            print("file1: ", self.swarm_file1.name)
-            print('file2: ', self.swarm_file2.name)
-
-            if os.path.isfile(self.filename3):
-                os.remove(self.filename3)
-
-        if os.stat(self.swarm_file2.name).st_size > 0:
-            try:
-                self.swarm_file2.seek(0)
-                tup2 = marshal.load(self.swarm_file2)
-                self.dict2[tup2[0]] = (tup2[1], tup2[2])
-                self.swarm_file2.seek(0)
-            except Exception as ex:
-                print(ex)
+        # if self.pause_swarm > 0:
+        #     self.pause_swarm -= 1
+        #
+        # if self.it == 0:
+        #     self.dict1 = {}
+        #     self.dict2 = {}
+        #     if self.swarm_file1.name == self.filename1:
+        #         self.swarm_file2 = open(self.filename2, 'rb+')
+        #     else:
+        #         self.swarm_file2 = open(self.filename1, 'rb+')
+        #
+        #     print("file1: ", self.swarm_file1.name)
+        #     print('file2: ', self.swarm_file2.name)
+        #
+        #     if os.path.isfile(self.filename3):
+        #         os.remove(self.filename3)
+        #
+        # if os.stat(self.swarm_file2.name).st_size > 0:
+        #     try:
+        #         self.swarm_file2.seek(0)
+        #         tup2 = marshal.load(self.swarm_file2)
+        #         self.dict2[tup2[0]] = (tup2[1], tup2[2])
+        #         self.swarm_file2.seek(0)
+        #     except Exception as ex:
+        #         print(ex)
 
         """ ******************************************* """
         """ swarm stupidity """
@@ -270,6 +270,7 @@ class MyDriver:
         """ ******************************************* """
         """ unstucking """
         """ ******************************************* """
+
 
         start = time.time()
         # self.steer(carstate, 0.0, command)
@@ -363,40 +364,40 @@ class MyDriver:
                 """ ******************************************* """
                 """ swarm stupidity """
                 """ ******************************************* """
-                # steering_threshold = 0.05
-                # 0.5 is actually pretty hardcore steering
-                relative_dist = int(carstate.distance_from_start) + 30
-                swarm_speed = 0
-                if relative_dist in self.dict2 and self.just_go == 0 and self.use_default == 0:
-                    steer2 = abs(self.dict2[relative_dist][0])
-                    print("*" * 50)
-                    print(relative_dist, " ", steer2, " count:", self.dict2[relative_dist][1])
-                    if self.pause_swarm == 0:
-                        swarm_speed = (1 - steer2 * 2) * 75 - 25
-                    print("steer2: ", steer2, " swarm_speed: ", swarm_speed, "pause_swarm: ", self.pause_swarm)
-
-                dist1 = int(carstate.distance_from_start)
-                steer1 = outCommand.steering
-
-                if dist1 not in self.dict1:
-                    self.dict1[dist1] = (steer1, 1)  # create new entry
-                    tup1 = (dist1, steer1, 1)
-                else:
-                    new_count = self.dict1[dist1][1] + 1
-                    new_avg = ((self.dict1[dist1][0] * self.dict1[dist1][1]) + steer1) / new_count
-                    self.dict1[dist1] = (new_avg, new_count)  # update dict
-                    tup1 = (dist1, new_avg, new_count)
-
-                DEGREE_PER_RADIANS = 180 / math.pi
-                if swarm_speed > 0 and (abs(carstate.angle / DEGREE_PER_RADIANS) > 30):
-                    swarm_speed = 0
-                    print("!!!!!!!!!!!!!!!!\nPREVENTING swarm\n!!!!!!!!!!!!!!!")
-                try:
-                    self.accelerate(carstate,
-                                    (np.sum(carstate.distances_from_edge) / 600) ** 2 * (150 + swarm_speed) + 10,
-                                    outCommand)
-                except:
-                    self.accelerate(carstate, (np.sum(carstate.distances_from_edge) / 600) ** 2 * 150 + 10, outCommand)
+                # # steering_threshold = 0.05
+                # # 0.5 is actually pretty hardcore steering
+                # relative_dist = int(carstate.distance_from_start) + 30
+                # swarm_speed = 0
+                # if relative_dist in self.dict2 and self.just_go == 0 and self.use_default == 0:
+                #     steer2 = abs(self.dict2[relative_dist][0])
+                #     print("*" * 50)
+                #     print(relative_dist, " ", steer2, " count:", self.dict2[relative_dist][1])
+                #     if self.pause_swarm == 0:
+                #         swarm_speed = (1 - steer2 * 2) * 75 - 25
+                #     print("steer2: ", steer2, " swarm_speed: ", swarm_speed, "pause_swarm: ", self.pause_swarm)
+                #
+                # dist1 = int(carstate.distance_from_start)
+                # steer1 = outCommand.steering
+                #
+                # if dist1 not in self.dict1:
+                #     self.dict1[dist1] = (steer1, 1)  # create new entry
+                #     tup1 = (dist1, steer1, 1)
+                # else:
+                #     new_count = self.dict1[dist1][1] + 1
+                #     new_avg = ((self.dict1[dist1][0] * self.dict1[dist1][1]) + steer1) / new_count
+                #     self.dict1[dist1] = (new_avg, new_count)  # update dict
+                #     tup1 = (dist1, new_avg, new_count)
+                #
+                # DEGREE_PER_RADIANS = 180 / math.pi
+                # if swarm_speed > 0 and (abs(carstate.angle / DEGREE_PER_RADIANS) > 30):
+                #     swarm_speed = 0
+                #     print("!!!!!!!!!!!!!!!!\nPREVENTING swarm\n!!!!!!!!!!!!!!!")
+                # try:
+                #     self.accelerate(carstate,
+                #                     (np.sum(carstate.distances_from_edge) / 600) ** 2 * (150 + swarm_speed) + 10,
+                #                     outCommand)
+                # except:
+                #     self.accelerate(carstate, (np.sum(carstate.distances_from_edge) / 600) ** 2 * 150 + 10, outCommand)
                 """ ******************************************* """
                 """ swarm stupidity """
                 """ ******************************************* """
@@ -444,7 +445,7 @@ class MyDriver:
                 """ ******************************************* """
                 """ swarm stupidity """
                 """ ******************************************* """
-                tup1 = (carstate.distance_from_start, 0, 1)
+                # tup1 = (carstate.distance_from_start, 0, 1)
                 """ ******************************************* """
                 """ swarm stupidity """
                 """ ******************************************* """
@@ -475,20 +476,20 @@ class MyDriver:
         """ swarm stupidity """
         """ ******************************************* """
 
-        try:
-            self.swarm_file1.seek(0)
-            self.swarm_file1.truncate()
-            if self.pause_swarm == 0:
-                marshal.dump(tup1, self.swarm_file1)
-                # print("dumping ", tup1[1])
-            else:
-                print("NOT dumping")
-            self.swarm_file1.flush()
-            os.fsync(self.swarm_file1.fileno())
-            # self.swarm_file1.seek(0)
-        except Exception as ex:
-            print(ex)
-            print("couldnt dump")
+        # try:
+        #     self.swarm_file1.seek(0)
+        #     self.swarm_file1.truncate()
+        #     if self.pause_swarm == 0:
+        #         marshal.dump(tup1, self.swarm_file1)
+        #         # print("dumping ", tup1[1])
+        #     else:
+        #         print("NOT dumping")
+        #     self.swarm_file1.flush()
+        #     os.fsync(self.swarm_file1.fileno())
+        #     # self.swarm_file1.seek(0)
+        # except Exception as ex:
+        #     print(ex)
+        #     print("couldnt dump")
         """ ******************************************* """
         """ swarm stupidity """
         """ ******************************************* """

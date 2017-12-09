@@ -7,7 +7,7 @@ import argparse
 import signal
 import logging
 import functools
-
+import torch
 # from __future__ import print_function
 from neat.checkpoint import Checkpointer
 import os
@@ -143,7 +143,7 @@ def run():
     for i in range(len(config_parser.output_model)):
         # print(self.parser.output_model[i])
         if config_parser.output_model[i]['name'] != 'None':
-            models[i2o[i]] = pickle.load(open(config_parser.output_model[i]['name'], 'rb'))
+            models[i2o[i]] = torch.load(open(config_parser.output_model[i]['name'], 'rb'))
 
     # pop = Checkpointer().restore_checkpoint("neat-checkpoint-33")
 

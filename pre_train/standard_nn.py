@@ -120,6 +120,8 @@ class Standard_nn(nn.Module):
             # print(self.mu, self.std)
         self.normalize(self.datasets, self.datasets_test, self.mu, self.std)
         self.mu[:5] = 0
+        if self.std.size(0) > 60:
+            self.std[48:] = 1
         self.std[:5] = 1
 
         l = []
