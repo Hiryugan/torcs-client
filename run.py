@@ -34,4 +34,4 @@ if __name__ == '__main__':
         main(MyDriver(logdata=False))
     else:
         my_driver = my_driver_noswarm.MyDriver(logdata=False)
-        main(MyDriver(logdata=False))
+        main(my_driver)

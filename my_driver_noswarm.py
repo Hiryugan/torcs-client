@@ -392,46 +392,16 @@ class MyDriver:
                 # if swarm_speed > 0 and (abs(carstate.angle / DEGREE_PER_RADIANS) > 30):
                 #     swarm_speed = 0
                 #     print("!!!!!!!!!!!!!!!!\nPREVENTING swarm\n!!!!!!!!!!!!!!!")
-                # try:
-                #     self.accelerate(carstate,
-                #                     (np.sum(carstate.distances_from_edge) / 600) ** 2 * (150 + swarm_speed) + 10,
-                #                     outCommand)
-                # except:
-                #     self.accelerate(carstate, (np.sum(carstate.distances_from_edge) / 600) ** 2 * 150 + 10, outCommand)
+
                 """ ******************************************* """
                 """ swarm stupidity """
                 """ ******************************************* """
-                # if carstate.distance_from_center > 0.9 or carstate.distance_from_center < -0.9:
-                #     self.steer(carstate, 0.0, outCommand)
-                #     _logger.info(prediction.data[0])
-
-                # print(predictionv.data[0])
-                # outCommand.accelerator = prediction.data[0]
-                # self.change_gear(carstate, outCommand)
-                # if predictionv.data[1] > 0.5:
-                #     if self.brake == 0:
-                #         outCommand.brake = predictionv.data[1]
-                #         outCommand.accelerator = 0
-                #         self.brake = 1
-                #     else:
-                #         self.brake = 0
-                # else:
-                #     outCommand.accelerator = predictionv.data[0]
-                #     outCommand.brake = 0
-                #     self.brake = 0
-                # outCommand.steering = s
-                # self.accelerate(carstate, (np.sum(carstate.distances_from_edge) / 600)**2 * 150 + 10, outCommand)
-                # self.accelerate(carstate, predictionv.data[0], outCommand)
-                # print(predictionv.data[0])
-
-                # self.change_gear(carstate, outCommand)
-                # if predictionv.data[0] > 0.05:
-                #     outCommand.brake = 1
-                #     outCommand.accelerator = 0
-                # else:
-                #     outCommand.accelerator = 1
-                #     outCommand.brake = 0
-                    # self.accelerate(carstate, predictionv.data[0], outCommand)
+                try:
+                    self.accelerate(carstate,
+                                    (np.sum(carstate.distances_from_edge) / 600) ** 2 * (150 + swarm_speed) + 10,
+                                    outCommand)
+                except:
+                    self.accelerate(carstate, (np.sum(carstate.distances_from_edge) / 600) ** 2 * 150 + 10, outCommand)
 
 
                 outCommand.clutch = 0#prediction.data[4]
@@ -520,10 +490,10 @@ class MyDriver:
             command.brake = min(-acceleration, 1)
 
         if carstate.rpm < 2500:
-            if carstate.gear == 0:
-                if carstate.speed_x > 2:
-                    command.gear = carstate.gear - 1
-            elif carstate.gear > 0:
+            # if carstate.gear == 0:
+            #     if carstate.speed_x > 2:
+            #         command.gear = carstate.gear - 1
+            if carstate.gear > 0:
                 command.gear = carstate.gear - 1
 
         if not command.gear:
@@ -547,10 +517,10 @@ class MyDriver:
         #     command.brake = min(-acceleration, 1)
 
         if carstate.rpm < 2500:
-            if carstate.gear == 0:
-                if carstate.speed_x > 2:
-                    command.gear = carstate.gear - 1
-            elif carstate.gear > 0:
+            # if carstate.gear == 0:
+            #     if carstate.speed_x > 2:
+            #         command.gear = carstate.gear - 1
+            if carstate.gear > 0:
                 command.gear = carstate.gear - 1
 
         if not command.gear:
