@@ -30,16 +30,20 @@ argsg = None
 parserg = None
 models = None
 def eval_genome(genome, config, fitness_save_path):
-    # net=neat.ctrnn.CTRNN.create(genome, config, 10)
-    net=neat.nn.FeedForwardNetwork.create(genome, config)
-    def signal_handler(signal, frame):
-        print("Timeout reached!")
-        exit(42)
     global driver
     global first
     global argsg
     global parserg
     global models
+    if parserg.merge_accel_brake == 'sum3333':
+        net=neat.ctrnn.CTRNN.create(genome, config, 10)
+    else:
+        net=neat.nn.FeedForwardNetwork.create(genome, config)
+
+    def signal_handler(signal, frame):
+        print("Timeout reached!")
+        exit(42)
+
     driver = MyDriver(parserg, models=models, net=net)
     print('Driver is created')
 
@@ -179,6 +183,8 @@ def run():
                              neat.DefaultSpeciesSet, neat.DefaultStagnation,
                              config_parser.neat_config_file)
         winner = pickle.load(open(r, 'rb'))
+
+        # remind ctrnn
         net = neat.nn.FeedForwardNetwork.create(winner, config)
 
         driver = MyDriver(parserg, models=models, net=net)
@@ -200,7 +206,7 @@ def run():
         pop.add_reporter(neat.StdOutReporter(True))
 
         pe = neat.ParallelEvaluator(1, eval_genome_func)
-        winner = pop.run(pe.evaluate, 1)
+        winner = pop.run(pe.evaluate, 100)
 
         # Save the winner.
         with open(config_parser.save_path + '_winner.pkl', 'wb') as f:

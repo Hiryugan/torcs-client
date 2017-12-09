@@ -17,7 +17,7 @@ from pre_train.mlp_torch_2 import MLP#, transform, back_transform, load_model
 import torch.nn.functional as F
 
 # from .pre_train.mlp_torch import MLP, transform, back_transform
-_logger = logging.getLogger(__name__)
+# _logger = logging.getLogger(__name__)
 
 # class MyDriver(Driver):
 class MyDriver:
@@ -40,7 +40,7 @@ class MyDriver:
         self.acceleration_ctrl = CompositeController(
             ProportionalController(3.7),
         )
-        self.data_logger = DataLogWriter() if logdata else None
+        # self.data_logger = DataLogWriter() if logdata else None
         # lst = pickle.load(open('pre_train/models/dimensions', 'rb'))
         # self.output_dimensions = [3]#lst[0]
 
@@ -50,12 +50,12 @@ class MyDriver:
         #     self.models[i] = pickle.load(open('pre_train/models/mod_temporal_torch' + '_' + str(i),'rb'))
         self.model3 = pickle.load(open('pre_train/models/mod_temporal_torch_3','rb'))
         # self.model1 = pickle.load(open('pre_train/models/mod_temporal_torch_1','rb'))
-        self.modelv = pickle.load(open('pre_train/models/mod_temporal_torch_1','rb'))
+        self.modelv = pickle.load(open('pre_train/models/mod_temporal_torch_15','rb'))
         # self.model0 = pickle.load(open('pre_train/models/mod_temporal_torch_0','rb'))
         # self.model = load_model(open('pre_train/models/mod_temporal_torch','rb'))
         # self.model = load_model(open('pre_train/models/mod_temporal_torch','rb'))
         # self.model = load_model(open('pre_train/models/mod_temporal_torch','rb'))
-        self.logger = open('logger', 'w')
+        # self.logger = open('logger', 'w')
         # t = pickle.load(open('pre_train/models/ustd_torch', 'rb'))
         # t = load_model(open('pre_train/models/ustd_torch', 'rb'))
         self.mu = self.model3.mu
@@ -111,10 +111,10 @@ class MyDriver:
         Optionally implement this event handler to clean up or write data
         before the application is stopped.
         """
-        if self.data_logger:
-            self.data_logger.close()
-            self.data_logger = None
-
+        # if self.data_logger:
+        #     self.data_logger.close()
+        #     self.data_logger = None
+        pass
 
     def carstate_matrix2(self, carstate):
 
@@ -209,8 +209,8 @@ class MyDriver:
         t_features = self.model3.transform(features, self.model3.mu[torch.LongTensor(self.model3.state_dimensions)],
                                               self.model3.std[torch.LongTensor(self.model3.state_dimensions)])
 
-        t_featuresv = self.modelv.transform(featuresv, self.modelv.mu[torch.LongTensor(self.modelv.state_dimensions)],
-                                           self.modelv.std[torch.LongTensor(self.modelv.state_dimensions)])
+        # t_featuresv = self.modelv.transform(featuresv, self.modelv.mu[torch.LongTensor(self.modelv.state_dimensions)],
+        #                                    self.modelv.std[torch.LongTensor(self.modelv.state_dimensions)])
         # print('transofrms', time.time() - startt)
         # print(torch.sum(self.model3.std), torch.sum(self.model3.mu))
         # print(torch.sum(self.model1.std), torch.sum(self.model1.mu))
@@ -227,10 +227,10 @@ class MyDriver:
                 feat2 = torch.cat((feat2, torch.FloatTensor(self.past_command[-i]).view(1, -1)), 1)
             feat2 = Variable(feat2, requires_grad=False)
 
-            featv = t_featuresv.data
-            for i in reversed(range(1, self.modelv.history_size)):
-                featv = torch.cat((featv, torch.FloatTensor(self.past_command2[-i]).view(1, -1)), 1)
-            featv = Variable(featv)
+            # featv = t_featuresv.data
+            # for i in reversed(range(1, self.modelv.history_size)):
+            #     featv = torch.cat((featv, torch.FloatTensor(self.past_command2[-i]).view(1, -1)), 1)
+            # featv = Variable(featv)
 
             t_prediction = self.model3(feat2)
             # if not self.use_lstm:
@@ -239,18 +239,18 @@ class MyDriver:
             #     # t_prediction, self.hn, self.cn = self.model.forward(feat2, self.hn, self.cn)
             #     t_prediction0, self.hn = self.model0.forward(feat2, self.hn)
             #
-            t_predictionv = self.modelv(featv)
+            # t_predictionv = self.modelv(featv)
             # s2 = time.time()
             prediction = self.model3.back_transform(t_prediction,
                                                      self.model3.mu[torch.LongTensor(self.model3.output_dimensions)],
                                                      self.model3.std[torch.LongTensor(self.model3.output_dimensions)])
-            predictionv = self.modelv.back_transform(t_predictionv,
-                                                   self.modelv.mu[torch.LongTensor(self.modelv.output_dimensions)],
-                                                   self.modelv.std[torch.LongTensor(self.modelv.output_dimensions)])
-
+            # predictionv = self.modelv.back_transform(t_predictionv,
+            #                                        self.modelv.mu[torch.LongTensor(self.modelv.output_dimensions)],
+            #                                        self.modelv.std[torch.LongTensor(self.modelv.output_dimensions)])
+            #
 
             prediction = prediction[0]
-            predictionv = predictionv[0]
+            # predictionv = predictionv[0]
             # prediction = F.tanh(prediction)
             # predictionv[0] = F.sigmoid(predictionv[0])
             # predictionv[1] = F.sigmoid(predictionv[1])
@@ -262,7 +262,8 @@ class MyDriver:
             # print('we')
             # print(a.data[0], b.data[0], s.data[0])
             if self.it > 100:
-                print(predictionv.data[0])
+                print(self.it)
+                # print(predictionv.data[0])
                 outCommand.steering = prediction.data[0]
                 # if carstate.distance_from_center > 0.9 or carstate.distance_from_center < -0.9:
                 #     self.steer(carstate, 0.0, outCommand)
@@ -309,9 +310,9 @@ class MyDriver:
             outCommand.brake = 0
 
         t_features_numpy = t_features.data.numpy()
-        t_features_numpy1 = t_featuresv.data.numpy()
+        # t_features_numpy1 = t_featuresv.data.numpy()
         self.past_command.append(t_features_numpy[0, :])
-        self.past_command2.append(t_features_numpy1[0, :])
+        # self.past_command2.append(t_features_numpy1[0, :])
 
         if carstate.distance_from_center > 0.99 or carstate.distance_from_center < -0.99:
             self.steer(carstate, 0.0, outCommand)
@@ -323,8 +324,8 @@ class MyDriver:
         # print(len(self.past_command))
         if len(self.past_command) > self.history:
             self.past_command = self.past_command[1:]
-        if len(self.past_command2) > self.history:
-            self.past_command2 = self.past_command2[1:]
+        # if len(self.past_command2) > self.history:
+        #     self.past_command2 = self.past_command2[1:]
         # print(time.time() - start, self.it)
         # print(time.time() - start)
         return outCommand

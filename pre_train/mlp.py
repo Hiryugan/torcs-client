@@ -24,11 +24,11 @@ class MLP2(Standard_nn):
         Standard_nn.__init__(self, input_dimensions, output_dimensions, state_dimensions, batch_size, cuda, epochs)
 
         self.lr_decay = 0.8
-        self.fc1 = nn.Linear(self.input_size * (history_size - 1) + self.state_size, 256)
+        self.fc1 = nn.Linear(self.input_size * (history_size - 1) + self.state_size, 64)
         self.bn1 = nn.BatchNorm1d(512)
         self.bn2 = nn.BatchNorm1d(512)
-        self.fc2 = nn.Linear(256, 256)
-        self.fc3 = nn.Linear(256, self.output_size)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, self.output_size)
         # self.fc1.weight.data = nn.init.orthogonal(self.fc1.weight.data)
         # self.fc2.weight.data = nn.init.orthogonal(self.fc2.weight.data)
         # self.fc3.weight.data = nn.init.orthogonal(self.fc3.weight.data)
@@ -36,6 +36,7 @@ class MLP2(Standard_nn):
         self.lossbreak = nn.BCELoss()
         # self.conv1 = nn.Conv1d()
         self.optimizer = optim.Adam(self.parameters(), lr=0.001 / 20)
+        # self.optimizer = optim.SGD(self.parameters(), lr=0.05 / 20, momentum=0.5, weight_decay=0.00001, nesterov=True)
 
     def forward(self, x):
         xorig = x[:]
@@ -132,6 +133,12 @@ class MLP2(Standard_nn):
             mydataset = torch.cat((mydataset, self.datasets[i][0]))
             mylabels = torch.cat((mylabels, self.datasets[i][1]))
 
+        while len(self.datasets) > 0:
+            del self.datasets[0]
+
+        while len(self.datasets_test) > 0:
+            del self.datasets_test[0]
+
         for ITER in range(1, epochs + 1):
             losses = []
             start = time.time()
@@ -174,8 +181,8 @@ class MLP2(Standard_nn):
 
             print("iter %r: train loss/sent=%.4f, time=%.2fs" %
                   (ITER, train_loss_tot / s_tot, time.time() - start))
-            if ITER % 5 == 0:
-                self.evaluate(self.datasets_test)
+            # if ITER % 5 == 0:
+            #     self.evaluate(self.datasets_test)
             # evaluate
             if ITER % 20 == 0 and ITER > 30:
                 for param_group in self.optimizer.param_groups:
@@ -282,7 +289,7 @@ class MLP2(Standard_nn):
         self.datasets_orig = None
         self.datasets_orig_test = None
         #
-        self.cpu()
+        self = self.cpu()
         self.mu = self.mu.cpu()
         self.std = self.std.cpu()
         return train_loss, self.mu, self.std

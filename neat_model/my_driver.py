@@ -62,7 +62,8 @@ class MyDriver(Driver):
             self.input_dimensions = self.models['steer'].input_dimensions
             self.output_dimensions = self.models['steer'].output_dimensions
             self.state_dimensions = self.models['steer'].state_dimensions
-        self.state_dimensions = [6, 15, 16, 17] + list(range(18, 38)) + [42]
+        else:
+            self.state_dimensions = [6, 15, 16, 17] + list(range(18, 38)) + [42]
 
             # prefix_folder = self.parser.output_model['steer'].split('/')[:-1]
 
@@ -82,8 +83,45 @@ class MyDriver(Driver):
         #
 
 
-
     def carstate_matrix2(self, carstate):
+
+        m = np.zeros((85))
+        # m[0] = self.past_command[-1][0]
+        # m[1] = self.past_command[-1][1]
+        # m[2] = self.past_command[-1][2]
+        # m[3] = self.past_command[-1][3]
+        # m[4] = self.past_command[-1][4]
+
+        DEGREE_PER_RADIANS = 180 / math.pi
+        MPS_PER_KMH = 1000 / 3600
+
+        m[5] = 0
+        m[6] = carstate.angle / DEGREE_PER_RADIANS
+        m[7] = carstate.current_lap_time
+        m[8] = carstate.damage
+        m[9] = carstate.distance_from_start
+        m[10] = carstate.distance_raced
+        m[11] = carstate.fuel
+        m[12] = carstate.last_lap_time
+        m[13] = carstate.race_position
+        # for i in range(42, 47):
+        #     m[i] = carstate.opponents[i-42]
+        m[14] = carstate.rpm
+        m[15] = carstate.speed_x / MPS_PER_KMH
+        m[16] = carstate.speed_y / MPS_PER_KMH
+        m[17] = carstate.speed_z / MPS_PER_KMH
+        for i in range(18, 37):
+            m[i] = carstate.distances_from_edge[i-18]
+        m[37] = carstate.distance_from_center
+        for i in range(38, 42):
+            m[i] = carstate.wheel_velocities[i-38] / DEGREE_PER_RADIANS
+        m[42] = carstate.z
+        for i in range(43, 48):
+            m[i] = carstate.focused_distances_from_edge[i-43]
+        for i in range(48, 84):
+                m[i] = carstate.opponents[i-48]
+        return m[self.state_dimensions]
+    def carstate_matrix22(self, carstate):
         m = np.zeros((48))
 
         DEGREE_PER_RADIANS = 180 / math.pi
@@ -155,12 +193,15 @@ class MyDriver(Driver):
             t_features_numpy = t_features.data.numpy()[0]
             if self.parser.merge_accel_brake == 'sum':
                 t_features_numpy_final = np.zeros(1)
-                t_features_numpy_final[0] = (np.sum(carstate.distances_from_edge) / 600) ** 2 * 150 + 10
+                t_features_numpy_final[0] = (np.sum(carstate.distances_from_edge) / 600)
+                # t_features_numpy_final[0] = (np.sum(carstate.distances_from_edge) / 600) ** 2 * 150 + 10
             elif self.parser.merge_accel_brake == 'sum3':
+                # t_features_numpy_final = np.zeros(1)
+                # t_features_numpy_final[0] = (np.sum(carstate.distances_from_edge) / 600)
                 t_features_numpy_final = np.zeros(3)
-                t_features_numpy_final[0] = np.sum(carstate.distances_from_edge[:7]) 
-                t_features_numpy_final[1] = np.sum(carstate.distances_from_edge[7:-7]) 
-                t_features_numpy_final[2] = np.sum(carstate.distances_from_edge[-7:]) 
+                t_features_numpy_final[0] = np.sum(carstate.distances_from_edge[:7])
+                t_features_numpy_final[1] = np.sum(carstate.distances_from_edge[7:-7])
+                t_features_numpy_final[2] = np.sum(carstate.distances_from_edge[-7:])
 
             elif self.parser.merge_accel_brake == 'sum5':
                 t_features_numpy_final = np.zeros(5)
@@ -181,18 +222,21 @@ class MyDriver(Driver):
         else:
             t_features_numpy_final = features
 
-        # genetic_prediction = self.net.advance(features[0], 0.1, 5)
+
 
         # self.accelerate(carstate, v_x, outCommand)
         # self.steer(carstate, (genetic_prediction[0] * 2) - 1, outCommand)
 
         if self.it > 5:
-            genetic_prediction = self.net.activate(t_features_numpy_final)
+            if self.parser.merge_accel_brake == 'sum3333':
+                genetic_prediction = self.net.advance(t_features_numpy_final, 0.1, 5)
+            else:
+                genetic_prediction = self.net.activate(t_features_numpy_final)
 
             outCommand.clutch = 0  # prediction.data[4]
 
             outCommand.steering = predictions['steer']
-            (np.sum(carstate.distances_from_edge) / 600) ** 2 * 150 + 10
+            # (np.sum(carstate.distances_from_edge) / 600) ** 2 * 150 + 10
             self.accelerate(carstate, genetic_prediction[0], outCommand)
 
         else:
