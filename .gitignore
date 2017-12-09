@@ -2,7 +2,7 @@ test/.cache
 **/__pycache__/
 drivelogs/
 output/
-pre_train/models/
+pre_train/models/old
 data/
 .idea/
-neat_results/
+neat_results/old
