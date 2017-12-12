@@ -24,11 +24,11 @@ class MLP2(Standard_nn):
         Standard_nn.__init__(self, input_dimensions, output_dimensions, state_dimensions, batch_size, cuda, epochs)
 
         self.lr_decay = 0.8
-        self.fc1 = nn.Linear(self.input_size * (history_size - 1) + self.state_size, 128)
+        self.fc1 = nn.Linear(self.input_size * (history_size - 1) + self.state_size, 256)
         self.bn1 = nn.BatchNorm1d(512)
         self.bn2 = nn.BatchNorm1d(512)
-        self.fc2 = nn.Linear(128, 128)
-        self.fc3 = nn.Linear(128, self.output_size)
+        self.fc2 = nn.Linear(256, 256)
+        self.fc3 = nn.Linear(256, self.output_size)
         # self.fc1.weight.data = nn.init.orthogonal(self.fc1.weight.data)
         # self.fc2.weight.data = nn.init.orthogonal(self.fc2.weight.data)
         # self.fc3.weight.data = nn.init.orthogonal(self.fc3.weight.data)
@@ -36,7 +36,7 @@ class MLP2(Standard_nn):
         self.lossbreak = nn.BCELoss()
         # self.conv1 = nn.Conv1d()
         self.optimizer = optim.Adam(self.parameters(), lr=0.001 / 20)
-        # self.optimizer = optim.SGD(self.parameters(), lr=0.05 / 20, momentum=0.5, weight_decay=0.00001, nesterov=True)
+        # self.optimizer = optim.SGD(self.parameters(), lr=0.0001 / 20, momentum=0.5, weight_decay=0.000001, nesterov=True)
 
     def selu(self, x):
         alpha = 1.6732632423543772848170429916717
@@ -185,7 +185,7 @@ class MLP2(Standard_nn):
             # if ITER % 5 == 0:
             #     self.evaluate(self.datasets_test)
             # evaluate
-            if ITER % 20 == 0 and ITER > 30:
+            if ITER % 15 == 0 and ITER > 15:
                 for param_group in self.optimizer.param_groups:
                     param_group['lr'] *= self.lr_decay
             if ITER < 5:

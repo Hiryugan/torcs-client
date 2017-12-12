@@ -12,7 +12,7 @@
 from pytocl.main import main
 # import my_driver_swarm
 # from my_driver import MyDriver
-from my_driver2 import MyDriver
+from my_driver import MyDriver
 import my_driver_noswarm
 import os
 

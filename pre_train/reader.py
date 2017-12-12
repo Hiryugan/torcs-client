@@ -37,7 +37,7 @@ def get_data2(files='alpine-1.csv', folder='../data/', substitute_gear=-1):
             if len(a) > 2:
                 for v in a[1:]:
                     if name == '(opponents':
-                        datarow.append(float(v))
+                        datarow.append(200 - float(v))
                     else:
                         datarow.append(float(v))
             # elif name != '(gear2' and name != '(opponents' and name != '(angle2':
@@ -130,11 +130,16 @@ def construct_dataset(dataset, input_indices, state_indices, output_indices, his
 
 def smooth_dataset(dataset):
     # return dataset
-    for j in range(3):
+    a = 0
+    for j in range(1):
         for i in range(1, dataset.shape[0] -1):
             if dataset[i, 1] == 0 and dataset[i-1, 1] != 0 and dataset[i+1, 1] != 0:
                 dataset[i, 1] = 0.5*(dataset[i-1, 1] + dataset[i+1, 1])
+            # if np.abs(dataset[i, 3]) < 0.005:
+            #     dataset[i, 3] = 0
+            #     a +=1
 
+    print('updated ', a, dataset.shape[0])
             # if dataset[i, 1] > 0.1:
             #     dataset[i, 1] = 1#*= 2
             # else:

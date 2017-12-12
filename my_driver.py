@@ -51,7 +51,7 @@ class MyDriver:
         # for i in [0,3]:
         #     self.models[i] = pickle.load(open('pre_train/models/mod_temporal_torch' + '_' + str(i),'rb'))
         self.model3 = torch.load('pre_train/models/mod_temporal_torch_3', lambda storage, location: storage)
-        self.model3 = self.model3.cpu()
+        # self.model3 = self.model3.cpu()
         # self.model1 = pickle.load(open('pre_train/models/mod_temporal_torch_1','rb'))
         # self.modelv = torch.load('pre_train/models/mod_temporal_torch_15.torch', lambda storage, location: storage)
         # self.model0 = pickle.load(open('pre_train/models/mod_temporal_torch_0','rb'))
@@ -178,7 +178,7 @@ class MyDriver:
         for i in range(43, 48):
             m[i] = carstate.focused_distances_from_edge[i-43]
         for i in range(48, 84):
-                m[i] = carstate.opponents[i-48]
+                m[i] = 200 - carstate.opponents[i-48]
         return m
 
     def drive(self, carstate: State) -> Command:

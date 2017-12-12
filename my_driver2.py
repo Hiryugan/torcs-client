@@ -2,10 +2,7 @@ import logging
 import os
 import marshal
 import math
-import torch
-import torch.nn as nn
 import time
-from torch.autograd import Variable
 from pytocl.analysis import DataLogWriter
 from pytocl.car import State, Command, MPS_PER_KMH
 from pytocl.controller import CompositeController, ProportionalController, \
@@ -14,11 +11,6 @@ import pickle
 # from pre_train.pickler import load_model, save_model
 import copy
 import numpy as np
-
-from pre_train.mlp_torch_2 import MLP#, transform, back_transform, load_model
-import torch.nn.functional as F
-
-# from .pre_train.mlp_torch import MLP, transform, back_transform
 # _logger = logging.getLogger(__name__)
 
 # class MyDriver(Driver):
@@ -47,9 +39,6 @@ class MyDriver:
         # self.output_dimensions = [3]#lst[0]
         self.data = []
         self.brake = 0
-        # for i in [0,3]:
-        #     self.models[i] = pickle.load(open('pre_train/models/mod_temporal_torch' + '_' + str(i),'rb'))
-        # self.model3 = torch.load('pre_train/models/mod_temporal_torch_3', lambda storage, location: storage)
         dict = pickle.load(open('pre_train/models/mod_temporal_torch_3_dict', 'rb'))
         self.w1, self.b1, self.w2, self.b2, self.w3, self.b3 = dict['w1'], dict['b1'],dict['w2'], dict['b2'], dict['w3'], dict['w3']
 
@@ -167,7 +156,7 @@ class MyDriver:
         # """
         start = time.time()
         carstate_orig = copy.deepcopy(carstate)
-
+        print('new version')
         self.data.append(self.carstate_matrix2(carstate))
 
         """ ******************************************* """
@@ -272,8 +261,8 @@ class MyDriver:
         start = time.time()
         self.it += 1
         features = self.carstate_matrix2(carstate)[self.state_dimensions]
-        t_features = self.transform(features, self.mu[torch.LongTensor(self.state_dimensions)],
-                                              self.std[torch.LongTensor(self.state_dimensions)])
+        t_features = self.transform(features, self.mu[self.state_dimensions],
+                                              self.std[self.state_dimensions])
 
 
         if len(self.past_command) >= self.history:
@@ -284,8 +273,8 @@ class MyDriver:
 
             t_prediction = self.forward(feat2)
             prediction = self.back_transform(t_prediction,
-                                                     self.mu[torch.LongTensor(self.output_dimensions)],
-                                                     self.std[torch.LongTensor(self.output_dimensions)])
+                                                     self.mu[self.output_dimensions],
+                                                     self.std[self.output_dimensions])
 
             prediction = prediction[0]
 
