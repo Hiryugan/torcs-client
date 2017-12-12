@@ -35,7 +35,7 @@ def eval_genome(genome, config, fitness_save_path):
     global argsg
     global parserg
     global models
-    if parserg.merge_accel_brake == 'sum3333':
+    if parserg.merge_accel_brake == 'sum3333' or parserg.merge_accel_brake == 'sum1111':
         net=neat.ctrnn.CTRNN.create(genome, config, 10)
     else:
         net=neat.nn.FeedForwardNetwork.create(genome, config)

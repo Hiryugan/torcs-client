@@ -12,6 +12,7 @@ from pytocl.controller import CompositeController, ProportionalController, \
     IntegrationController, DerivativeController
 import pickle
 # from pre_train.pickler import load_model, save_model
+import copy
 import numpy as np
 
 from pre_train.mlp_torch_2 import MLP#, transform, back_transform, load_model
@@ -44,14 +45,15 @@ class MyDriver:
         # self.data_logger = DataLogWriter() if logdata else None
         # lst = pickle.load(open('pre_train/models/dimensions', 'rb'))
         # self.output_dimensions = [3]#lst[0]
-
+        self.data = []
         self.brake = 0
         self.models = dict()
         # for i in [0,3]:
         #     self.models[i] = pickle.load(open('pre_train/models/mod_temporal_torch' + '_' + str(i),'rb'))
         self.model3 = torch.load('pre_train/models/mod_temporal_torch_3', lambda storage, location: storage)
+        self.model3 = self.model3.cpu()
         # self.model1 = pickle.load(open('pre_train/models/mod_temporal_torch_1','rb'))
-        self.modelv = torch.load('pre_train/models/mod_temporal_torch_15.torch', lambda storage, location: storage)
+        # self.modelv = torch.load('pre_train/models/mod_temporal_torch_15.torch', lambda storage, location: storage)
         # self.model0 = pickle.load(open('pre_train/models/mod_temporal_torch_0','rb'))
         # self.model = load_model(open('pre_train/models/mod_temporal_torch','rb'))
         # self.model = load_model(open('pre_train/models/mod_temporal_torch','rb'))
@@ -67,7 +69,7 @@ class MyDriver:
         # self.history = 20
         self.past_sensors = []
         self.past_command = [np.zeros((len(self.model3.state_dimensions)))]
-        self.past_command2 = [np.zeros((len(self.modelv.state_dimensions)))]
+        # self.past_command2 = [np.zeros((len(self.modelv.state_dimensions)))]
         # self.past_command[-1][0] = (1 - self.mu.data[0]) / self.std.data[0]
         # self.past_command[-1][2] = (1 - self.mu.data[2]) / self.std.data[2]
         self.it = 0
@@ -79,7 +81,7 @@ class MyDriver:
         self.input_dimensions = self.model3.input_dimensions
         # if len(lst) > 3:
         #     self.history = lst[3]
-        self.history = 4#self.model3.history
+        self.history = self.model3.history_size
         self.use_lstm = False
         self.use_lstm3 = False
         self.min_dist = 0
@@ -108,6 +110,7 @@ class MyDriver:
         self.dict2 = {}
         self.pause_swarm = 0
         self.wait_time = 0
+        self.use_swarm_at_all = True
 
         if os.path.isfile(self.filename1):
             self.swarm_file1 = open(self.filename2, "wb", os.O_NONBLOCK)
@@ -187,6 +190,10 @@ class MyDriver:
         # drivers) successfully driven along the race track.
         # """
         start = time.time()
+        carstate_orig = copy.deepcopy(carstate)
+
+        self.data.append(self.carstate_matrix2(carstate))
+
         """ ******************************************* """
         """ swarm stupidity """
         """ ******************************************* """
@@ -197,24 +204,41 @@ class MyDriver:
             self.dict1 = {}
             self.dict2 = {}
             if self.swarm_file1.name == self.filename1:
-                self.swarm_file2 = open(self.filename2, 'rb+')
-            else:
-                self.swarm_file2 = open(self.filename1, 'rb+')
+                try:
+                    self.swarm_file2 = open(self.filename2, 'rb+')
+                except:
+                    self.use_swarm_at_all = False
+                    if os.path.isfile(self.filename1):
+                        os.remove(self.filename1)
+                    if os.path.isfile(self.filename2):
+                        os.remove(self.filename2)
 
-            print("file1: ", self.swarm_file1.name)
-            print('file2: ', self.swarm_file2.name)
+            else:
+                try:
+                    self.swarm_file2 = open(self.filename1, 'rb+')
+                except:
+                    self.use_swarm_at_all = False
+                    if os.path.isfile(self.filename1):
+                        os.remove(self.filename1)
+                    if os.path.isfile(self.filename2):
+                        os.remove(self.filename2)
+
+            if self.use_swarm_at_all:
+                print("file1: ", self.swarm_file1.name)
+                print('file2: ', self.swarm_file2.name)
 
             if os.path.isfile(self.filename3):
                 os.remove(self.filename3)
 
-        if os.stat(self.swarm_file2.name).st_size > 0:
-            try:
-                self.swarm_file2.seek(0)
-                tup2 = marshal.load(self.swarm_file2)
-                self.dict2[tup2[0]] = (tup2[1], tup2[2])
-                self.swarm_file2.seek(0)
-            except Exception as ex:
-                print(ex)
+        if self.use_swarm_at_all:
+            if os.stat(self.swarm_file2.name).st_size > 0:
+                try:
+                    self.swarm_file2.seek(0)
+                    tup2 = marshal.load(self.swarm_file2)
+                    self.dict2[tup2[0]] = (tup2[1], tup2[2])
+                    self.swarm_file2.seek(0)
+                except Exception as ex:
+                    print(ex)
 
         """ ******************************************* """
         """ swarm stupidity """
@@ -277,10 +301,10 @@ class MyDriver:
         # features = self.carstate_matrix2(carstate)[[x - 5 for x in self.state_dimensions]].reshape(1,-1)
         features = self.carstate_matrix2(carstate)[self.model3.state_dimensions].reshape(1,-1)
         # _logger.info(carstate)
-        featuresv = self.carstate_matrix2(carstate)[self.modelv.state_dimensions].reshape(1, -1)
+        # featuresv = self.carstate_matrix2(carstate)[self.modelv.state_dimensions].reshape(1, -1)
         features = Variable(torch.FloatTensor(features), requires_grad=False)
         # features = Variable(torch.FloatTensor(features))
-        featuresv = Variable(torch.FloatTensor(featuresv))
+        # featuresv = Variable(torch.FloatTensor(featuresv))
         startt = time.time()
         t_features = self.model3.transform(features, self.model3.mu[torch.LongTensor(self.model3.state_dimensions)],
                                               self.model3.std[torch.LongTensor(self.model3.state_dimensions)])
@@ -363,35 +387,38 @@ class MyDriver:
                 """ ******************************************* """
                 """ swarm stupidity """
                 """ ******************************************* """
-                # steering_threshold = 0.05
-                # 0.5 is actually pretty hardcore steering
-                relative_dist = int(carstate.distance_from_start) + 30
-                swarm_speed = 0
-                if relative_dist in self.dict2 and self.just_go == 0 and self.use_default == 0:
-                    steer2 = abs(self.dict2[relative_dist][0])
-                    print("*" * 50)
-                    print(relative_dist, " ", steer2, " count:", self.dict2[relative_dist][1])
-                    if self.pause_swarm == 0:
-                        swarm_speed = (1 - steer2 * 2) * 75 - 25
-                    print("steer2: ", steer2, " swarm_speed: ", swarm_speed, "pause_swarm: ", self.pause_swarm)
-
-                dist1 = int(carstate.distance_from_start)
-                steer1 = outCommand.steering
-
-                if dist1 not in self.dict1:
-                    self.dict1[dist1] = (steer1, 1)  # create new entry
-                    tup1 = (dist1, steer1, 1)
-                else:
-                    new_count = self.dict1[dist1][1] + 1
-                    new_avg = ((self.dict1[dist1][0] * self.dict1[dist1][1]) + steer1) / new_count
-                    self.dict1[dist1] = (new_avg, new_count)  # update dict
-                    tup1 = (dist1, new_avg, new_count)
-
-                DEGREE_PER_RADIANS = 180 / math.pi
-                if swarm_speed > 0 and (abs(carstate.angle / DEGREE_PER_RADIANS) > 30):
+                if self.use_swarm_at_all:
+                    # steering_threshold = 0.05
+                    # 0.5 is actually pretty hardcore steering
+                    relative_dist = int(carstate.distance_from_start) + 30
                     swarm_speed = 0
-                    print("!!!!!!!!!!!!!!!!\nPREVENTING swarm\n!!!!!!!!!!!!!!!")
+                    if relative_dist in self.dict2 and self.just_go == 0 and self.use_default == 0:
+                        steer2 = abs(self.dict2[relative_dist][0])
+                        print("*" * 50)
+                        print(relative_dist, " ", steer2, " count:", self.dict2[relative_dist][1])
+                        if self.pause_swarm == 0:
+                            swarm_speed = (1 - steer2 * 2) * 75 - 25
+                        print("steer2: ", steer2, " swarm_speed: ", swarm_speed, "pause_swarm: ", self.pause_swarm)
+
+                    dist1 = int(carstate.distance_from_start)
+                    steer1 = outCommand.steering
+
+                    if dist1 not in self.dict1:
+                        self.dict1[dist1] = (steer1, 1)  # create new entry
+                        tup1 = (dist1, steer1, 1)
+                    else:
+                        new_count = self.dict1[dist1][1] + 1
+                        new_avg = ((self.dict1[dist1][0] * self.dict1[dist1][1]) + steer1) / new_count
+                        self.dict1[dist1] = (new_avg, new_count)  # update dict
+                        tup1 = (dist1, new_avg, new_count)
+
+                    DEGREE_PER_RADIANS = 180 / math.pi
+                    if swarm_speed > 0 and (abs(carstate.angle / DEGREE_PER_RADIANS) > 30):
+                        swarm_speed = 0
+                        print("!!!!!!!!!!!!!!!!\nPREVENTING swarm\n!!!!!!!!!!!!!!!")
+                    print('we guido')
                 try:
+                    print('here we are!')
                     self.accelerate(carstate,
                                     (np.sum(carstate.distances_from_edge) / 600) ** 2 * (150 + swarm_speed) + 10,
                                     outCommand)
@@ -471,27 +498,32 @@ class MyDriver:
         # print(time.time() - start)
         print(self.it, time.time() - start, outCommand.steering, carstate.distance_from_center, carstate.distance_from_start, carstate.current_lap_time)
 
+        print(self.it, time.time() - start, outCommand.steering, carstate_orig.distance_from_center,
+              carstate_orig.distance_from_start, carstate_orig.current_lap_time)
         """ ******************************************* """
         """ swarm stupidity """
         """ ******************************************* """
 
-        try:
-            self.swarm_file1.seek(0)
-            self.swarm_file1.truncate()
-            if self.pause_swarm == 0:
-                marshal.dump(tup1, self.swarm_file1)
-                # print("dumping ", tup1[1])
-            else:
-                print("NOT dumping")
-            self.swarm_file1.flush()
-            os.fsync(self.swarm_file1.fileno())
-            # self.swarm_file1.seek(0)
-        except Exception as ex:
-            print(ex)
-            print("couldnt dump")
+        if self.use_swarm_at_all:
+            try:
+                self.swarm_file1.seek(0)
+                self.swarm_file1.truncate()
+                if self.pause_swarm == 0:
+                    marshal.dump(tup1, self.swarm_file1)
+                    # print("dumping ", tup1[1])
+                else:
+                    print("NOT dumping")
+                self.swarm_file1.flush()
+                os.fsync(self.swarm_file1.fileno())
+                # self.swarm_file1.seek(0)
+            except Exception as ex:
+                print(ex)
+                print("couldnt dump")
         """ ******************************************* """
         """ swarm stupidity """
         """ ******************************************* """
+        stop = time.time()
+        print('Time passed: ', stop - start)
         return outCommand
 
     def accelerate(self, carstate, target_speed, command):
@@ -596,3 +628,4 @@ class MyDriver:
             # self.back_stuck -= self.front_stuck % 3
             # self.back_stuck = max(0, self.back_stuck)
 # self.__init__(logdata=False)
+

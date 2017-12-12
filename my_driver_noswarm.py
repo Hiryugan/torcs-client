@@ -31,7 +31,7 @@ class MyDriver:
     """
 
     def __init__(self, logdata=True):
-
+        self.data = []
         start = time.time()
         self.steering_ctrl = CompositeController(
             ProportionalController(0.4),
@@ -44,7 +44,6 @@ class MyDriver:
         # self.data_logger = DataLogWriter() if logdata else None
         # lst = pickle.load(open('pre_train/models/dimensions', 'rb'))
         # self.output_dimensions = [3]#lst[0]
-
         self.brake = 0
         self.models = dict()
         # for i in [0,3]:
@@ -67,7 +66,7 @@ class MyDriver:
         # self.history = 20
         self.past_sensors = []
         self.past_command = [np.zeros((len(self.model3.state_dimensions)))]
-        self.past_command2 = [np.zeros((len(self.modelv.state_dimensions)))]
+        # self.past_command2 = [np.zeros((len(self.modelv.state_dimensions)))]
         # self.past_command[-1][0] = (1 - self.mu.data[0]) / self.std.data[0]
         # self.past_command[-1][2] = (1 - self.mu.data[2]) / self.std.data[2]
         self.it = 0
@@ -223,6 +222,8 @@ class MyDriver:
         """ unstucking """
         """ ******************************************* """
         start = time.time()
+
+        self.data.append(self.carstate_matrix2(carstate))
         # self.model3.eval()
         outCommand = Command()
 
@@ -278,10 +279,10 @@ class MyDriver:
         # features = self.carstate_matrix2(carstate)[[x - 5 for x in self.state_dimensions]].reshape(1,-1)
         features = self.carstate_matrix2(carstate)[self.model3.state_dimensions].reshape(1,-1)
         # _logger.info(carstate)
-        featuresv = self.carstate_matrix2(carstate)[self.modelv.state_dimensions].reshape(1, -1)
+        # featuresv = self.carstate_matrix2(carstate)[self.modelv.state_dimensions].reshape(1, -1)
         features = Variable(torch.FloatTensor(features), requires_grad=False)
         # features = Variable(torch.FloatTensor(features))
-        featuresv = Variable(torch.FloatTensor(featuresv))
+        # featuresv = Variable(torch.FloatTensor(featuresv))
         startt = time.time()
         t_features = self.model3.transform(features, self.model3.mu[torch.LongTensor(self.model3.state_dimensions)],
                                               self.model3.std[torch.LongTensor(self.model3.state_dimensions)])
@@ -357,7 +358,7 @@ class MyDriver:
             """ ******************************************* """
             """ swarm stupidity """
             """ ******************************************* """
-            if self.it > 100:
+            if self.it > 50:
 
                 # print(predictionv.data[0])
                 outCommand.steering = prediction.data[0]
@@ -397,6 +398,7 @@ class MyDriver:
                 """ swarm stupidity """
                 """ ******************************************* """
                 try:
+                    print('Here we are')
                     self.accelerate(carstate,
                                     (np.sum(carstate.distances_from_edge) / 600) ** 2 * (150 + swarm_speed) + 10,
                                     outCommand)

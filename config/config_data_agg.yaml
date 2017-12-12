@@ -1,0 +1,15 @@
+avoid_go_out: true
+fitness_function_file: fitness_functions/fit1.py
+merge_accel_brake: false
+neat_config_file: config/config-ctrnn0
+output_model:
+- {feature: accel, name: None, used: false}
+- {feature: brake, name: None, used: false}
+- {feature: steer, name: pre_train/models/mod_temporal_torch_3_nice, used: true}
+port: 9
+save_path: neat_results/exp0/
+server_config_file: /home/hiryugan/Documents/torcs-server/config/torcs_data_agg.xml
+tracks:
+- {category: road, name: wheel-2}
+- {category: road, name: alpine-1}
+- {category: oval, name: michigan}

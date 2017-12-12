@@ -12,12 +12,12 @@
 from pytocl.main import main
 # import my_driver_swarm
 # from my_driver import MyDriver
-from my_driver import MyDriver
+from my_driver2 import MyDriver
 import my_driver_noswarm
 import os
 
 if __name__ == '__main__':
-    swarm = False
+    swarm = True
 
     if swarm:
 

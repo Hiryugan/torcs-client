@@ -2,7 +2,10 @@
 import argparse
 import logging
 
+import pickle
+
 from pytocl.protocol import Client
+import my_driver
 
 
 def main(driver):
@@ -29,10 +32,20 @@ def main(driver):
         help='Configuration file path.',
         default='../config/config_template.yaml'
     )
+    parser.add_argument(
+        '-t',
+        '--track',
+        help='Track data.',
+        default='../config/config_template.yaml'
+    )
     parser.add_argument('-v', help='Debug log level.', action='store_true')
     args = parser.parse_args()
     config_file = args.conf
     del args.conf
+    track_info = args.track
+    track_name = track_info.split('|')[0]
+    del args.track
+    driver.track_name = track_name
     # switch log level:
     if args.v:
         level = logging.DEBUG
@@ -47,6 +60,9 @@ def main(driver):
     # start client loop:
     client = Client(driver=driver, **args.__dict__)
     client.run()
+
+    pickle.dump(driver.data, open('add_data/' + track_name + '.pkl', 'wb+'))
+    exit(0)
 
 
 if __name__ == '__main__':

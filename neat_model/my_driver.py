@@ -191,17 +191,17 @@ class MyDriver(Driver):
 
                 # instead stack to t_features
             t_features_numpy = t_features.data.numpy()[0]
-            if self.parser.merge_accel_brake == 'sum':
+            if self.parser.merge_accel_brake == 'sum1111':
+                t_features_numpy_final = np.zeros(1)
+                t_features_numpy_final[0] = (np.sum(carstate.distances_from_edge) / 600) ** 2 * 150 + 10
+                # t_features_numpy_final[0] = (np.sum(carstate.distances_from_edge) / 600) ** 2 * 150 + 10
+            elif self.parser.merge_accel_brake == 'sum3333':
                 t_features_numpy_final = np.zeros(1)
                 t_features_numpy_final[0] = (np.sum(carstate.distances_from_edge) / 600)
-                # t_features_numpy_final[0] = (np.sum(carstate.distances_from_edge) / 600) ** 2 * 150 + 10
-            elif self.parser.merge_accel_brake == 'sum3':
-                # t_features_numpy_final = np.zeros(1)
-                # t_features_numpy_final[0] = (np.sum(carstate.distances_from_edge) / 600)
-                t_features_numpy_final = np.zeros(3)
-                t_features_numpy_final[0] = np.sum(carstate.distances_from_edge[:7])
-                t_features_numpy_final[1] = np.sum(carstate.distances_from_edge[7:-7])
-                t_features_numpy_final[2] = np.sum(carstate.distances_from_edge[-7:])
+                # t_features_numpy_final = np.zeros(3)
+                # t_features_numpy_final[0] = np.sum(carstate.distances_from_edge[:7])
+                # t_features_numpy_final[1] = np.sum(carstate.distances_from_edge[7:-7])
+                # t_features_numpy_final[2] = np.sum(carstate.distances_from_edge[-7:])
 
             elif self.parser.merge_accel_brake == 'sum5':
                 t_features_numpy_final = np.zeros(5)
@@ -228,7 +228,7 @@ class MyDriver(Driver):
         # self.steer(carstate, (genetic_prediction[0] * 2) - 1, outCommand)
 
         if self.it > 5:
-            if self.parser.merge_accel_brake == 'sum3333':
+            if self.parser.merge_accel_brake == 'sum3333' or self.parser.merge_accel_brake == 'sum1111':
                 genetic_prediction = self.net.advance(t_features_numpy_final, 0.1, 5)
             else:
                 genetic_prediction = self.net.activate(t_features_numpy_final)
@@ -435,7 +435,8 @@ class MyDriver(Driver):
             command.brake = min(-acceleration, 1)
 
         if carstate.rpm < 2500:
-            command.gear = carstate.gear - 1
+            if carstate.gear > 0:
+                command.gear = carstate.gear - 1
 
         if not command.gear:
             command.gear = carstate.gear or 1

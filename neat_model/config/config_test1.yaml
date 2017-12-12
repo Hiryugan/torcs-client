@@ -34,6 +34,6 @@ output_model:
     name: pre_train/models/mod_temporal_torch_3
     used: True
 
-merge_accel_brake: sum3
+merge_accel_brake: sum1111
 
 avoid_go_out: False

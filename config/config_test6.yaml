@@ -1,0 +1,39 @@
+---
+
+neat_config_file: config/config-ctrnn6
+
+server_config_file: /home/hiryugan/Documents/torcs-server/config/example_torcs_config_test6.xml
+
+save_path: neat_results/exp6/
+
+port: 5
+
+fitness_function_file: fitness_functions/fit1.py
+
+
+tracks:
+  - name: aalborg
+    category: road
+
+  - name: alpine-1
+    category: road
+
+  - name: michigan
+    category: oval
+
+output_model:
+  - feature: accel
+    name: None
+    used: False
+
+  - feature: brake
+    name: None
+    used: False
+
+  - feature: steer
+    name: pre_train/models/mod_temporal_torch_3_nicer
+    used: False
+
+merge_accel_brake: False
+
+avoid_go_out: False

@@ -5,6 +5,19 @@ from config_parser import Configurator
 import shlex
 import psutil
 
+
+def run_command(command):
+    process = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE)
+    while True:
+        output = process.stdout.readline()
+        if output == '' and process.poll() is not None:
+            break
+        if output:
+            print(output.strip())
+    rc = process.poll()
+    pid = process.pid
+    return rc, pid
+
 def main():
     """Main entry point of application."""
     parser = argparse.ArgumentParser(
@@ -15,23 +28,41 @@ def main():
         '--conf',
         help='Configuration file path.'
     )
+    parser.add_argument(
+        '-t',
+        '--track',
+        help='Track data.'
+    )
     args = parser.parse_args()
     config_file = args.conf
     del args.conf
+    track_info = args.track
+    track = {}
+    track['name'] = track_info.split('|')[0]
+    track['category'] = track_info.split('|')[1]
+
+    del args.track
     configurator = Configurator(config_file)
 
+    configurator.configure_data_aggregator(track)
     configurator.configure_server()
     configurator.configure_client()
 
     parser = configurator.parser
-    script = 'torcs -r {} & python pytocl/run.py --conf {} -p {}'\
-        .format(parser.server_config_file,
-                parser.port + 1,
-                config_file)
+    torcs_script = 'torcs -r {} &'.format(parser.server_config_file)
+    python_script = 'python run.py -p {} --conf {} --track {}'.format(3000 + parser.port + 1, config_file, track_info)
 
-    args = shlex.split(script)
-    proc = subprocess.Popen(args)
-    process = psutil.Process(proc.pid)
+    torcs_args = shlex.split(torcs_script)
+    torcs_proc = subprocess.Popen(torcs_args, stdout=subprocess.PIPE)
+    rc = 42
+    while rc == 42:
+        rc, python_pid = run_command(python_script)
+        process = psutil.Process(python_pid)
+        for pr in process.children(recursive=True):
+            pr.kill()
+        process.kill()
+
+    process = psutil.Process(torcs_proc.pid)
     for pr in process.children(recursive=True):
         pr.kill()
     process.kill()

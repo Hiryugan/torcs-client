@@ -38,19 +38,21 @@ class MLP2(Standard_nn):
         self.optimizer = optim.Adam(self.parameters(), lr=0.001 / 20)
         # self.optimizer = optim.SGD(self.parameters(), lr=0.05 / 20, momentum=0.5, weight_decay=0.00001, nesterov=True)
 
+    def selu(self, x):
+        alpha = 1.6732632423543772848170429916717
+        scale = 1.0507009873554804934193349852946
+        return scale * F.elu(x, alpha)
+
     def forward(self, x):
-        x = F.selu(self.fc1(x))
-        # x = self.drop(x)
-        # x = torch.cat((x, xorig), 1)
-        x = F.selu(self.fc2(x))
-        # x = self.drop2(x)
-        # x = torch.cat((x, xorig), 1)
+        x = self.selu(self.fc1(x))
+        # x = F.selu(self.fc1(x))
+        # x = F.selu(self.fc2(x))
+        x = self.selu(self.fc2(x))
+        # x = self.fc3(x)
         x = self.fc3(x)
         # x[0] = F.sigmoid(x[0])
         # x[1] = F.sigmoid(x[1])
         # x[3] = F.tanh(x[3])
-        # x = F.sigmoid(x)
-        # x = F.tanh(x)
         return x
 
 
